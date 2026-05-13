@@ -1,0 +1,240 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GEO Diagnostic Report Data",
+  "description": "唯一诊断报告渲染契约。ReportGenerator 和 DiagnosticReportPage 只能消费此结构或由此结构归一化后的 displayData。",
+  "type": "object",
+  "required": ["meta", "lineage", "audit", "global"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["report_id", "contract_version", "template_version", "brand_name", "report_date", "generated_at", "total_queries", "total_competitors"],
+      "properties": {
+        "report_id": { "type": "string" },
+        "contract_version": { "type": "string" },
+        "template_version": { "type": "string" },
+        "brand_name": { "type": "string" },
+        "brand_tagline": { "type": ["string", "null"] },
+        "report_date": { "type": "string" },
+        "generated_at": { "type": "string" },
+        "total_queries": { "type": ["number", "null"] },
+        "total_competitors": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "lineage": {
+      "type": "object",
+      "required": ["brand_config_id", "entity_id", "queryset_id", "queryset_version", "inspection_batch_id", "inspection_started_at", "inspection_completed_at", "aggregation_version"],
+      "properties": {
+        "brand_config_id": { "type": ["string", "number", "null"] },
+        "entity_id": { "type": ["string", "number", "null"] },
+        "queryset_id": { "type": ["string", "number", "null"] },
+        "queryset_version": { "type": ["string", "number", "null"] },
+        "inspection_batch_id": { "type": ["string", "number", "null"] },
+        "inspection_started_at": { "type": ["string", "null"] },
+        "inspection_completed_at": { "type": ["string", "null"] },
+        "aggregation_version": { "type": ["string", "number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "audit": {
+      "type": "object",
+      "required": ["missing_fields", "empty_sections", "truncated", "validation_errors", "schema_version", "source"],
+      "properties": {
+        "missing_fields": { "type": "array", "items": { "type": "string" } },
+        "empty_sections": { "type": "array", "items": { "type": "string" } },
+        "truncated": { "type": "array", "items": { "type": "object" } },
+        "validation_errors": { "type": "array", "items": { "type": "string" } },
+        "schema_version": { "type": "string" },
+        "source": { "enum": ["api", "fixture", "uploaded"] }
+      },
+      "additionalProperties": true
+    },
+    "executive_summary": { "type": ["string", "null"] },
+    "global": {
+      "type": "object",
+      "properties": {
+        "natural_visibility": { "type": ["number", "null"] },
+        "rank": { "type": ["number", "null"] },
+        "visibility": { "type": ["number", "null"] },
+        "sentiment_score": { "type": ["number", "null"] },
+        "ai_recommend_score": { "type": ["number", "null"] },
+        "own_citations": { "type": ["number", "null"] },
+        "competitor_suppression_rate": { "type": ["number", "null"] },
+        "summary_text": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "metric_definitions": {
+      "type": "array",
+      "description": "V6.3 指标目录；后端可按 metric_id 或 aliases 查找指标公式、方向和行业基准。",
+      "items": { "$ref": "#/definitions/metricDefinition" }
+    },
+    "competitor_ranking": { "type": "array", "items": { "$ref": "#/definitions/competitor" } },
+    "platforms": { "type": "array", "items": { "$ref": "#/definitions/platform" } },
+    "sources": { "type": "array", "items": { "$ref": "#/definitions/source" } },
+    "source_gap": { "type": "array", "items": { "$ref": "#/definitions/sourceGap" } },
+    "sentiment": {
+      "type": "object",
+      "properties": {
+        "positive_rate": { "type": ["number", "null"] },
+        "neutral_rate": { "type": ["number", "null"] },
+        "negative_rate": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "topics": { "type": "array", "items": { "$ref": "#/definitions/topic" } },
+    "optimization_recommendations": { "type": "array", "items": { "$ref": "#/definitions/recommendation" } },
+    "retest_plan": { "type": ["object", "array", "string", "null"] },
+    "brand_config": {
+      "type": "object",
+      "description": "上游提供的品牌配置模块，沿用品牌配置母版结构。",
+      "properties": {
+        "entity_name": { "type": ["string", "null"] },
+        "entity_aliases": { "type": "array", "items": { "type": "string" } },
+        "industry_segments": { "type": "array", "items": { "type": "string" } },
+        "topics": { "type": "array", "items": { "$ref": "#/definitions/brandConfigTopic" } },
+        "competitors": {
+          "oneOf": [
+            { "type": ["number", "null"] },
+            { "type": "array", "items": { "$ref": "#/definitions/brandConfigCompetitor" } }
+          ]
+        },
+        "queries": {
+          "oneOf": [
+            { "type": ["number", "null"] },
+            { "type": "array" }
+          ]
+        },
+        "aliases": { "type": ["number", "null"] },
+        "aliases_count": { "type": ["number", "null"] },
+        "alias_count": { "type": ["number", "null"] },
+        "topics_monitored": { "type": ["number", "null"] },
+        "topic_count": { "type": ["number", "null"] },
+        "competitors_count": { "type": ["number", "null"] },
+        "competitor_count": { "type": ["number", "null"] },
+        "queries_count": { "type": ["number", "null"] },
+        "query_count": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "insights": { "type": "array", "items": { "$ref": "#/definitions/insight" } }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "competitor": {
+      "type": "object",
+      "required": ["name", "mention_rate", "is_self"],
+      "properties": {
+        "name": { "type": "string" },
+        "mention_rate": { "type": ["number", "null"] },
+        "is_self": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "platform": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "samples": { "type": ["number", "null"] },
+        "mention_rate": { "type": ["number", "null"] },
+        "ai_recommend_score": { "type": ["number", "null"] },
+        "own_citations": { "type": ["number", "null"] },
+        "competitor_rank": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "required": ["domain"],
+      "properties": {
+        "domain": { "type": "string" },
+        "type": { "type": ["string", "null"] },
+        "count": { "type": ["number", "null"] },
+        "is_cited": { "type": ["boolean", "null"] },
+        "is_official": { "type": ["boolean", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "metricDefinition": {
+      "type": "object",
+      "required": ["metric_id", "metric_name", "formula", "benchmark_label", "direction", "unit"],
+      "properties": {
+        "metric_id": { "type": "string" },
+        "metric_name": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+        "formula": { "type": "string" },
+        "benchmark_value": { "type": ["number", "null"] },
+        "benchmark_label": { "type": "string" },
+        "direction": { "enum": ["higher_is_better", "lower_is_better"] },
+        "unit": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "sourceGap": {
+      "type": "object",
+      "required": ["domain"],
+      "properties": {
+        "domain": { "type": "string" },
+        "brand": { "type": ["number", "null"] },
+        "competitor": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "topic": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "报告话题展示维度，优先使用 brand_config.topics[].business_line。"
+        },
+        "positive": { "type": ["number", "null"] },
+        "neutral": { "type": ["number", "null"] },
+        "negative": { "type": ["number", "null"] },
+        "verdict": { "type": ["string", "null"] },
+        "change": {
+          "type": ["string", "null"],
+          "description": "较上期变化，展示值归一为 up / flat / down，对应 ↑ / - / ↓。"
+        }
+      },
+      "additionalProperties": true
+    },
+    "recommendation": {
+      "type": "object",
+      "properties": {
+        "title": { "type": ["string", "null"] },
+        "text": { "type": ["string", "null"] },
+        "priority": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "insight": {
+      "type": "object",
+      "properties": {
+        "priority": { "type": ["string", "null"] },
+        "text": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "brandConfigTopic": {
+      "type": "object",
+      "properties": {
+        "topic_name": { "type": ["string", "null"] },
+        "business_line": { "type": ["string", "null"] },
+        "priority": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "brandConfigCompetitor": {
+      "type": "object",
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+        "business_line": { "type": ["string", "null"] },
+        "category": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

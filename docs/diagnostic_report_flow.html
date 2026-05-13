@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>诊断报告生成流程图</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #18212f;
+      --muted: #667085;
+      --line: #d6dbe3;
+      --blue: #2f6feb;
+      --blue-soft: #e8f0ff;
+      --green: #18794e;
+      --green-soft: #e7f6ef;
+      --amber: #b76e00;
+      --amber-soft: #fff5df;
+      --red: #c0362c;
+      --red-soft: #fff0ee;
+      --violet: #7357c7;
+      --violet-soft: #f0ecff;
+      --shadow: 0 16px 38px rgba(16, 24, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1440px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+
+    .title-block,
+    .summary-panel,
+    .diagram-panel,
+    .detail-panel,
+    .notes-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .title-block {
+      padding: 26px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 820px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .summary-panel {
+      padding: 20px;
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .metric-row strong {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .metric-row span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .diagram-panel {
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .diagram-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .diagram-head h2,
+    .detail-panel h2,
+    .notes-panel h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .dot.green {
+      background: var(--green);
+    }
+
+    .dot.amber {
+      background: var(--amber);
+    }
+
+    .dot.red {
+      background: var(--red);
+    }
+
+    .flow-scroll {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .flow {
+      min-width: 980px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      position: relative;
+    }
+
+    .lane {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .lane-title {
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      background: #fbfcfe;
+    }
+
+    .node {
+      position: relative;
+      width: 100%;
+      min-height: 112px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .node:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(16, 24, 40, 0.08);
+    }
+
+    .node[aria-pressed="true"] {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(47, 111, 235, 0.14), 0 12px 28px rgba(16, 24, 40, 0.08);
+      background: var(--blue-soft);
+    }
+
+    .node::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -15px;
+      width: 15px;
+      border-top: 2px solid var(--line);
+    }
+
+    .lane:last-child .node::after,
+    .node.no-arrow::after {
+      display: none;
+    }
+
+    .node.branch::before {
+      content: "";
+      position: absolute;
+      bottom: -13px;
+      left: 50%;
+      height: 13px;
+      border-left: 2px solid var(--line);
+    }
+
+    .node.fail {
+      background: var(--red-soft);
+      border-color: #f0beb9;
+    }
+
+    .node.fail[aria-pressed="true"] {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(192, 54, 44, 0.13);
+    }
+
+    .node.snapshot {
+      background: var(--green-soft);
+      border-color: #bfe5d0;
+    }
+
+    .node.snapshot[aria-pressed="true"] {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(24, 121, 78, 0.13);
+    }
+
+    .node.query {
+      background: var(--amber-soft);
+      border-color: #f0d79e;
+    }
+
+    .node.query[aria-pressed="true"] {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(183, 110, 0, 0.13);
+    }
+
+    .node.consume {
+      background: var(--violet-soft);
+      border-color: #d8cff8;
+    }
+
+    .node.consume[aria-pressed="true"] {
+      border-color: var(--violet);
+      box-shadow: 0 0 0 3px rgba(115, 87, 199, 0.13);
+    }
+
+    .step {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .node-title {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .node-desc {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .node .status {
+      align-self: end;
+      width: fit-content;
+      max-width: 100%;
+      color: #344054;
+      background: #eef2f7;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .detail-panel {
+      position: sticky;
+      top: 16px;
+      padding: 18px;
+    }
+
+    .detail-top {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .detail-id {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .detail-summary {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .detail-section {
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      margin-top: 14px;
+    }
+
+    .detail-section h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #344054;
+      letter-spacing: 0;
+    }
+
+    .detail-section ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .detail-section li + li {
+      margin-top: 4px;
+    }
+
+    code {
+      color: #26374f;
+      background: #eef2f7;
+      border: 1px solid #e1e6ee;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 12px;
+    }
+
+    .notes-panel {
+      margin-top: 18px;
+      padding: 20px;
+    }
+
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+
+    .note strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .main-grid,
+      .notes-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100vw - 20px, 1440px);
+        padding-top: 12px;
+      }
+
+      .title-block,
+      .summary-panel,
+      .diagram-panel,
+      .detail-panel,
+      .notes-panel {
+        box-shadow: none;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .diagram-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="title-block">
+        <p class="eyebrow">GEO Diagnostic Report Flow</p>
+        <h1>诊断报告生成流程图</h1>
+        <p class="lead">
+          本报告把品牌配置、诊断任务、QuerySet 生成、多平台实时巡检、报告聚合和 Dashboard 快照串成一条可追踪链路。每个模块都对应当前后端契约或实现中的真实输入、输出与处理动作。
+        </p>
+      </div>
+      <aside class="summary-panel" aria-label="流程摘要">
+        <div class="metric-row">
+          <strong>4</strong>
+          <span>前端主流程接口：品牌配置、启动诊断、轮询状态、读取报告。</span>
+        </div>
+        <div class="metric-row">
+          <strong>5</strong>
+          <span>后端核心阶段：创建 run、生成 QuerySet、实时巡检、聚合报告、持久化快照。</span>
+        </div>
+        <div class="metric-row">
+          <strong>1</strong>
+          <span>最终报告对象：完整的 <code>report_data_v1</code>，并作为后续工作台数据源。</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="main-grid">
+      <div class="diagram-panel">
+        <div class="diagram-head">
+          <h2>流程总览</h2>
+          <div class="legend" aria-label="图例">
+            <span><i class="dot"></i> API 模块</span>
+            <span><i class="dot amber"></i> QuerySet</span>
+            <span><i class="dot green"></i> 快照</span>
+            <span><i class="dot red"></i> 失败分支</span>
+          </div>
+        </div>
+
+        <div class="flow-scroll">
+          <div class="flow" id="flow">
+            <div class="lane">
+              <div class="lane-title">前端 Workbench</div>
+              <button class="node" data-module="brandForm" aria-pressed="false">
+                <span class="step"><span>01</span><span>用户输入</span></span>
+                <span class="node-title">填写品牌诊断配置</span>
+                <span class="node-desc">收集主体、别名、业务线、话题、竞品和平台选择。</span>
+                <span class="status">brand payload</span>
+              </button>
+              <button class="node consume no-arrow" data-module="openReport" aria-pressed="false">
+                <span class="step"><span>09</span><span>报告展示</span></span>
+                <span class="node-title">打开诊断报告页</span>
+                <span class="node-desc">携带 run_id 读取最终报告，并渲染分析页面。</span>
+                <span class="status">/report/diagnostic</span>
+              </button>
+            </div>
+
+            <div class="lane">
+              <div class="lane-title">API 接入层</div>
+              <button class="node" data-module="brandConfig" aria-pressed="true">
+                <span class="step"><span>02</span><span>同步请求</span></span>
+                <span class="node-title">创建品牌配置</span>
+                <span class="node-desc">校验 entity_name，持久化用户提交的品牌配置。</span>
+                <span class="status">POST /brand-configs</span>
+              </button>
+              <button class="node branch" data-module="startRun" aria-pressed="false">
+                <span class="step"><span>03</span><span>异步启动</span></span>
+                <span class="node-title">创建诊断 Run</span>
+                <span class="node-desc">生成 run_id 与 batch_id，后台启动诊断任务。</span>
+                <span class="status">queued</span>
+              </button>
+              <button class="node consume no-arrow" data-module="pollRun" aria-pressed="false">
+                <span class="step"><span>04</span><span>状态轮询</span></span>
+                <span class="node-title">轮询 Run 状态</span>
+                <span class="node-desc">前端按 run_id 获取 progress、status、message。</span>
+                <span class="status">queued → completed</span>
+              </button>
+            </div>
+
+            <div class="lane">
+              <div class="lane-title">后台诊断任务</div>
+              <button class="node query" data-module="queryset" aria-pressed="false">
+                <span class="step"><span>05</span><span>问题生成</span></span>
+                <span class="node-title">生成 QuerySet</span>
+                <span class="node-desc">调用 Matrix API 或本地 rule matrix，标准化查询对象。</span>
+                <span class="status">rule_matrix_v1</span>
+              </button>
+              <button class="node" data-module="inspection" aria-pressed="false">
+                <span class="step"><span>06</span><span>并发巡检</span></span>
+                <span class="node-title">多平台实时巡检</span>
+                <span class="node-desc">对每个平台与每个 query 执行真实模型回答和品牌提及抽取。</span>
+                <span class="status">MAX_CONCURRENCY</span>
+              </button>
+              <button class="node fail no-arrow" data-module="failure" aria-pressed="false">
+                <span class="step"><span>06F</span><span>异常出口</span></span>
+                <span class="node-title">失败终止</span>
+                <span class="node-desc">无可聚合结果或配置缺失时，run 标记 failed。</span>
+                <span class="status">failed</span>
+              </button>
+            </div>
+
+            <div class="lane">
+              <div class="lane-title">存储与聚合</div>
+              <button class="node" data-module="persistInspection" aria-pressed="false">
+                <span class="step"><span>07</span><span>过程落盘</span></span>
+                <span class="node-title">保存巡检结果与进度</span>
+                <span class="node-desc">每完成一条巡检记录，就更新 inspection_results 与 run progress。</span>
+                <span class="status">running 5-90%</span>
+              </button>
+              <button class="node" data-module="aggregate" aria-pressed="false">
+                <span class="step"><span>08</span><span>报告聚合</span></span>
+                <span class="node-title">聚合 report_data_v1</span>
+                <span class="node-desc">计算可见度、平均位次、情绪、竞品排名、平台表现和审计信息。</span>
+                <span class="status">aggregating 92%</span>
+              </button>
+              <button class="node snapshot" data-module="snapshot" aria-pressed="false">
+                <span class="step"><span>08B</span><span>快照沉淀</span></span>
+                <span class="node-title">持久化 Dashboard 快照</span>
+                <span class="node-desc">把完成报告转成工作台、历史趋势和 overview 的统一数据源。</span>
+                <span class="status">completed 100%</span>
+              </button>
+            </div>
+
+            <div class="lane">
+              <div class="lane-title">下游消费</div>
+              <button class="node consume" data-module="reportApi" aria-pressed="false">
+                <span class="step"><span>10</span><span>报告 API</span></span>
+                <span class="node-title">读取诊断报告</span>
+                <span class="node-desc">按 run_id 返回完整 report_data_v1；未完成时返回 409。</span>
+                <span class="status">GET /diagnostic-report</span>
+              </button>
+              <button class="node consume" data-module="dashboard" aria-pressed="false">
+                <span class="step"><span>11</span><span>工作台</span></span>
+                <span class="node-title">Dashboard 合约</span>
+                <span class="node-desc">读取最新快照，补齐 key metrics、问题和优化动作。</span>
+                <span class="status">GET /dashboard-contract</span>
+              </button>
+              <button class="node consume no-arrow" data-module="historyOverview" aria-pressed="false">
+                <span class="step"><span>12</span><span>趋势分析</span></span>
+                <span class="node-title">历史与 Overview</span>
+                <span class="node-desc">按品牌账号返回历史指标、QuerySet、归因和方法说明。</span>
+                <span class="status">history / overview</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="detail-panel" aria-live="polite">
+        <div class="detail-top">
+          <div class="detail-id" id="detailId">02 · API 接入层</div>
+          <h2 id="detailTitle">创建品牌配置</h2>
+          <p class="detail-summary" id="detailSummary">校验并保存用户提交的品牌配置，后续所有 QuerySet、巡检和报告聚合都以这份配置为主线。</p>
+        </div>
+
+        <div class="detail-section">
+          <h3>输入</h3>
+          <ul id="detailInputs"></ul>
+        </div>
+
+        <div class="detail-section">
+          <h3>处理过程</h3>
+          <ul id="detailProcess"></ul>
+        </div>
+
+        <div class="detail-section">
+          <h3>输出</h3>
+          <ul id="detailOutputs"></ul>
+        </div>
+
+        <div class="detail-section">
+          <h3>关联代码 / 契约</h3>
+          <ul id="detailRefs"></ul>
+        </div>
+      </aside>
+    </section>
+
+    <section class="notes-panel">
+      <h2>关键约束</h2>
+      <div class="notes-grid">
+        <article class="note">
+          <strong>真实数据优先</strong>
+          <p>前端诊断报告流必须走 <code>/api/v1/geo/*</code>，报告数据不得从 fixture 或 demo fallback 生成。</p>
+        </article>
+        <article class="note">
+          <strong>失败不降级为模拟数据</strong>
+          <p>模型 API key 缺失、平台请求失败或无完成样本时，run 应进入 <code>failed</code>，并暴露 error 或 message。</p>
+        </article>
+        <article class="note">
+          <strong>快照是工作台事实源</strong>
+          <p>报告完成后必须持久化 Dashboard snapshot，后续工作台面板、上期值和历史趋势都应从快照读取。</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const modules = {
+      brandForm: {
+        id: "01 · 前端 Workbench",
+        title: "填写品牌诊断配置",
+        summary: "用户在前端录入诊断对象和业务范围，形成创建品牌配置接口的请求体。",
+        inputs: [
+          "<code>entity_name</code>：品牌或公司主体名称",
+          "<code>entity_aliases</code>：品牌别名和英文名",
+          "<code>industry_segments</code>：所属行业或场景",
+          "<code>topics</code>：topic_name、business_line、priority",
+          "<code>competitors</code>：竞品名称、别名、业务线和分类",
+          "<code>platforms</code>：DeepSeek、Claude、Kimi、豆包等目标平台"
+        ],
+        process: [
+          "前端组装品牌配置 payload。",
+          "报告链路后续维度以 <code>topics[].business_line</code> 作为报告 topic 名称。",
+          "平台选择会在启动 run 时传给后端。"
+        ],
+        outputs: [
+          "传给 <code>POST /api/v1/geo/brand-configs</code> 的 JSON body。",
+          "用户提交的原始业务上下文。"
+        ],
+        refs: [
+          "<code>docs/DIAGNOSTIC_API_CONTRACT.md</code>：Brand Config 请求体",
+          "<code>src/api/geo.js</code>：<code>createBrandConfig()</code>"
+        ]
+      },
+      brandConfig: {
+        id: "02 · API 接入层",
+        title: "创建品牌配置",
+        summary: "校验并保存用户提交的品牌配置，后续所有 QuerySet、巡检和报告聚合都以这份配置为主线。",
+        inputs: [
+          "<code>POST /api/v1/geo/brand-configs</code>",
+          "请求体包含 <code>entity_name</code>、<code>entity_aliases</code>、<code>industry_segments</code>、<code>topics</code>、<code>competitors</code>。"
+        ],
+        process: [
+          "校验 <code>entity_name</code> 非空；为空时返回 422。",
+          "调用 <code>create_brand_config(payload)</code> 持久化品牌配置。",
+          "保留用户提交的 brand_config，不允许在报告中替换为硬编码 demo brand。"
+        ],
+        outputs: [
+          "<code>brand_config_id</code>：后续启动诊断 run 的主键。",
+          "<code>entity_id</code>：诊断主体 id。",
+          "<code>brand_config</code>：完整品牌配置对象。"
+        ],
+        refs: [
+          "<code>backend/router/geo.py</code>：<code>post_brand_config</code>",
+          "<code>docs/DIAGNOSTIC_API_CONTRACT.md</code>：<code>POST /brand-configs</code>"
+        ]
+      },
+      startRun: {
+        id: "03 · API 接入层",
+        title: "创建诊断 Run",
+        summary: "以品牌配置为输入创建后台诊断任务，接口立即返回 queued，真实报告生成在异步 job 中完成。",
+        inputs: [
+          "<code>brand_config_id</code>",
+          "<code>queryset_strategy</code>：默认 rule_matrix_v1",
+          "<code>queryset_source</code>：默认 matrix_api_v1",
+          "<code>inspection_mode</code>：multi_platform_live_v1 或 deepseek_live_v1",
+          "<code>platforms</code>：请求巡检的平台列表"
+        ],
+        process: [
+          "先检查 <code>brand_config_id</code> 是否存在，不存在返回 404。",
+          "调用 <code>create_run()</code> 生成 <code>run_id</code>、<code>inspection_batch_id</code> 和初始状态。",
+          "通过 <code>asyncio.create_task(run_diagnostic_job(run_id))</code> 启动后台任务。"
+        ],
+        outputs: [
+          "<code>run_id</code>",
+          "<code>status: queued</code>",
+          "<code>progress: 0</code>",
+          "<code>message: Diagnostic run queued</code>"
+        ],
+        refs: [
+          "<code>backend/router/geo.py</code>：<code>post_diagnostic_run</code>",
+          "<code>backend/service/inspector.py</code>：<code>create_run</code>"
+        ]
+      },
+      pollRun: {
+        id: "04 · API 接入层",
+        title: "轮询 Run 状态",
+        summary: "前端持续查询 run 状态，直到 completed 后再读取报告；failed 时展示错误。",
+        inputs: [
+          "<code>GET /api/v1/geo/diagnostic-runs/{run_id}</code>",
+          "<code>run_id</code>：启动诊断返回的任务 id。"
+        ],
+        process: [
+          "从 run store 读取当前状态。",
+          "返回 <code>queued</code>、<code>running</code>、<code>aggregating</code>、<code>completed</code> 或 <code>failed</code>。",
+          "后台每完成巡检会更新 progress；聚合阶段进度约 92%，完成后为 100%。"
+        ],
+        outputs: [
+          "<code>status</code>、<code>progress</code>、<code>message</code>。",
+          "失败时包含 <code>error</code> 或错误 message。"
+        ],
+        refs: [
+          "<code>backend/router/geo.py</code>：<code>get_diagnostic_run</code>",
+          "<code>src/api/geo.js</code>：<code>fetchDiagnosticRun()</code>"
+        ]
+      },
+      queryset: {
+        id: "05 · 后台诊断任务",
+        title: "生成 QuerySet",
+        summary: "根据品牌配置和策略生成巡检问题集合，Matrix API 可用时走外部生成，不配置时回落到本地 rule matrix。",
+        inputs: [
+          "<code>brand_config</code>：主体、别名、行业、话题、竞品。",
+          "<code>run.queryset_strategy</code>：例如 rule_matrix_v1。",
+          "<code>run.queryset_source</code>：例如 matrix_api_v1。",
+          "可选环境变量：<code>QUERYSET_MATRIX_API_URL</code>、<code>QUERYSET_MATRIX_API_KEY</code>。"
+        ],
+        process: [
+          "调用 <code>generate_queryset(brand_config, run)</code>。",
+          "若配置 Matrix API URL，则 POST 外部 Matrix API；否则调用 <code>generate_rule_matrix_queryset()</code>。",
+          "标准化 query 字段，包括 query_id、query_text、query_layer、run_scope、metric_scope、topic、intent_type、related_competitors。",
+          "query layer 仅允许 <code>core_anchor</code>、<code>adaptive</code>、<code>experimental</code>。"
+        ],
+        outputs: [
+          "<code>queryset_id</code>",
+          "<code>queryset_version</code>",
+          "<code>matrix_api_request_id</code>",
+          "<code>queries[]</code>：每条巡检问题对象。"
+        ],
+        refs: [
+          "<code>backend/service/queryset.py</code>",
+          "<code>backend/service/queryset_matrix_client.py</code>",
+          "<code>docs/DIAGNOSTIC_API_CONTRACT.md</code>：Rule Matrix QuerySet"
+        ]
+      },
+      inspection: {
+        id: "06 · 后台诊断任务",
+        title: "多平台实时巡检",
+        summary: "对每个 query 和每个请求平台调用真实模型 API，并把模型回答解析成品牌提及、情绪和引用信息。",
+        inputs: [
+          "<code>queries[]</code>：QuerySet 生成的巡检问题。",
+          "<code>platforms_requested</code>：标准化后的平台列表。",
+          "平台 API 配置：如 <code>DEEPSEEK_API_KEY</code>、<code>DEEPSEEK_MODEL</code>、<code>CLAUDE_API_KEY</code> 等。",
+          "<code>MAX_CONCURRENCY</code>：默认 4。"
+        ],
+        process: [
+          "根据 inspection mode 和 platforms 创建平台 client。",
+          "每个 client 对每个 query 调用 <code>inspect(query, brand_config)</code>。",
+          "OpenAI-compatible client 调用 <code>/chat/completions</code>，要求模型返回 JSON object。",
+          "解析 answer 中真实出现的品牌、提及顺序、mention_context、sentiment、citations。",
+          "DeepSeek live 模式强制使用 DeepSeek；API key 缺失时不能回落 mock。"
+        ],
+        outputs: [
+          "<code>inspection_id</code>",
+          "<code>status: completed | failed</code>",
+          "<code>platform</code>、<code>model</code>",
+          "<code>raw_answer</code>",
+          "<code>parsed.mentioned_brands[]</code> 与 <code>parsed.citations[]</code>",
+          "<code>usage</code> 或 <code>error</code>。"
+        ],
+        refs: [
+          "<code>backend/service/inspector.py</code>：<code>_inspect_queries</code>",
+          "<code>backend/service/platform_registry.py</code>",
+          "<code>backend/service/platform_clients/openai_compatible.py</code>"
+        ]
+      },
+      failure: {
+        id: "06F · 异常出口",
+        title: "失败终止",
+        summary: "当品牌配置不存在、QuerySet 为空、平台配置缺失或全部巡检失败时，run 进入 failed，前端不应继续取报告。",
+        inputs: [
+          "缺失或非法的 <code>brand_config_id</code>。",
+          "空 QuerySet。",
+          "平台 API key、base URL 或 model 未配置。",
+          "全部 inspection result 都失败。"
+        ],
+        process: [
+          "后台任务 catch exception 后调用 <code>_update_run()</code>。",
+          "设置 <code>status: failed</code>、<code>progress: 100</code>、<code>message: Diagnostic run failed</code>。",
+          "写入 <code>error</code> 和 <code>inspection_completed_at</code>。",
+          "契约要求失败时不得生成 fixture、mock 或 deterministic simulated report。"
+        ],
+        outputs: [
+          "<code>GET /diagnostic-runs/{run_id}</code> 返回 failed 和 error。",
+          "<code>GET /diagnostic-report?run_id=...</code> 对 failed run 返回 409。"
+        ],
+        refs: [
+          "<code>backend/service/inspector.py</code>：<code>run_diagnostic_job</code> exception branch",
+          "<code>docs/DIAGNOSTIC_API_CONTRACT.md</code>：DeepSeek Live Inspection"
+        ]
+      },
+      persistInspection: {
+        id: "07 · 存储与聚合",
+        title: "保存巡检结果与进度",
+        summary: "巡检不是等全部结束才落盘，而是每完成一个 task 就写入结果集合，并刷新 run 的进度文本。",
+        inputs: [
+          "每个异步巡检 task 的返回结果。",
+          "<code>run_id</code>",
+          "<code>total_tasks = queries.length × clients.length</code>。"
+        ],
+        process: [
+          "通过 <code>asyncio.as_completed(tasks)</code> 按完成顺序处理。",
+          "把累计 results 写入 <code>inspection_results_store</code>。",
+          "按完成比例计算 <code>progress = 5 + index / total_tasks × 85</code>，最高限制到 90。",
+          "run message 更新为 <code>Inspecting x/y (platforms: ...)</code>。"
+        ],
+        outputs: [
+          "<code>backend/storage/inspection_results.json</code> 中的累计巡检结果。",
+          "run store 中持续更新的 <code>status: running</code>、progress 和 message。"
+        ],
+        refs: [
+          "<code>backend/service/inspector.py</code>：<code>_inspect_queries</code>",
+          "<code>backend/service/storage.py</code>"
+        ]
+      },
+      aggregate: {
+        id: "08 · 存储与聚合",
+        title: "聚合 report_data_v1",
+        summary: "将完成的巡检样本聚合为报告 schema 需要的完整对象，并带上 lineage 和 audit。",
+        inputs: [
+          "<code>run</code>",
+          "<code>brand_config</code>",
+          "<code>queryset</code>",
+          "<code>completed_results</code> 和 <code>failed_results</code>。"
+        ],
+        process: [
+          "若没有任何 completed result，则抛错并失败。",
+          "统计本品牌与竞品的提及率、平均位次、平台样本数和情绪分布。",
+          "计算 <code>natural_visibility</code>、<code>rank</code>、<code>visibility</code>、<code>sentiment_score</code>、<code>ai_recommend_score</code>、<code>competitor_suppression_rate</code>。",
+          "生成 <code>meta</code>、<code>lineage</code>、<code>audit</code>、<code>global</code>、<code>competitor_ranking</code>、<code>platforms</code>、<code>topics</code>、<code>insights</code> 等报告段落。",
+          "没有明确 URL 时 sources 和 source_gap 不编造。"
+        ],
+        outputs: [
+          "完整 <code>report_data_v1</code>。",
+          "run 更新为 <code>status: completed</code>、<code>progress: 100</code>。",
+          "run 中保存 <code>report_data</code>。"
+        ],
+        refs: [
+          "<code>backend/service/aggregator.py</code>：<code>aggregate_report</code>",
+          "<code>src/schemas/report_data.schema.json</code>",
+          "<code>docs/DIAGNOSTIC_API_CONTRACT.md</code>：Aggregation rules"
+        ]
+      },
+      snapshot: {
+        id: "08B · 存储与聚合",
+        title: "持久化 Dashboard 快照",
+        summary: "报告完成后立即生成品牌账号快照，使 Dashboard、历史趋势和 Overview 有稳定的数据事实源。",
+        inputs: [
+          "<code>persisted_run</code>",
+          "<code>report_data</code>。"
+        ],
+        process: [
+          "调用 <code>persist_dashboard_snapshot(run, report_data)</code>。",
+          "根据品牌名生成稳定 <code>brand_id</code>。",
+          "从 <code>report_data.global</code> 转换 Dashboard metrics。",
+          "保留 <code>brand_config</code>、<code>queryset</code>、<code>report_data</code> 和 <code>latest_run_id</code>。",
+          "同一 run_id 的旧快照会被替换，账号快照按 generated_at 排序。"
+        ],
+        outputs: [
+          "<code>brand_dashboard_snapshots.json</code> 中的品牌账号快照。",
+          "run 标记 <code>dashboard_snapshot_persisted: true</code>。",
+          "Dashboard 合约可读取 <code>latest_run_id</code> 或 <code>diagnostic_run.run_id</code>。"
+        ],
+        refs: [
+          "<code>backend/service/dashboard_snapshots.py</code>：<code>persist_dashboard_snapshot</code>",
+          "<code>docs/DIAGNOSTIC_API_CONTRACT.md</code>：Dashboard snapshot contract"
+        ]
+      },
+      openReport: {
+        id: "09 · 前端 Workbench",
+        title: "打开诊断报告页",
+        summary: "当前端确认 run 已 completed 后，导航到报告页并携带 run_id 拉取报告数据。",
+        inputs: [
+          "<code>run_id</code>",
+          "路由：<code>/report/diagnostic?run_id=...</code>。"
+        ],
+        process: [
+          "报告按钮只应打开携带 run_id 的诊断报告页。",
+          "报告页调用 <code>fetchDiagnosticReportData({ run_id })</code>。",
+          "前端不得在 persisted snapshot 或 API report 存在时回落到 demo data。"
+        ],
+        outputs: [
+          "报告页渲染所需 <code>report_data_v1</code>。",
+          "如果 run 未完成或失败，展示 API 错误而不是假数据。"
+        ],
+        refs: [
+          "<code>src/api/geo.js</code>：<code>fetchDiagnosticReportData()</code>",
+          "<code>docs/DIAGNOSTIC_API_CONTRACT.md</code>：dashboard report button rule"
+        ]
+      },
+      reportApi: {
+        id: "10 · 下游消费",
+        title: "读取诊断报告",
+        summary: "诊断报告 API 是 report_data_v1 的直接读取入口，只对 completed 且已有 report_data 的 run 返回报告。",
+        inputs: [
+          "<code>GET /api/v1/geo/diagnostic-report?run_id={run_id}</code>",
+          "<code>run_id</code> 必填。"
+        ],
+        process: [
+          "先检查 run 是否存在，不存在返回 404。",
+          "run 为 failed 时返回 409。",
+          "run 未完成或 report_data 不存在时返回 409。",
+          "完成后返回 run 中保存的完整 report_data。"
+        ],
+        outputs: [
+          "<code>report_data_v1</code> 完整对象。",
+          "包含 <code>lineage</code>、<code>audit</code>、<code>brand_config</code>、<code>global</code>、<code>platforms</code> 等。"
+        ],
+        refs: [
+          "<code>backend/router/geo.py</code>：<code>get_diagnostic_report</code>",
+          "<code>backend/service/inspector.py</code>：<code>get_report</code>"
+        ]
+      },
+      dashboard: {
+        id: "11 · 下游消费",
+        title: "Dashboard 合约",
+        summary: "工作台读取最新完成报告对应的品牌快照，并用前后两期快照计算 current/previous 指标。",
+        inputs: [
+          "<code>GET /api/v1/geo/dashboard-contract</code>",
+          "可选 <code>brand_config_id</code> 或 <code>brand_id</code>。"
+        ],
+        process: [
+          "先执行 <code>sync_completed_run_snapshots()</code>，保证 completed run 有快照。",
+          "选择指定品牌配置或品牌账号的最新快照和前一快照。",
+          "构造 <code>key_metrics</code>，其中 current_value 来自当前快照，previous_value 来自上一快照。",
+          "补齐 <code>key_issues</code>、<code>optimization_actions</code>、<code>cross_topic_rules</code>。"
+        ],
+        outputs: [
+          "<code>dashboard_from_report_data_v1</code> 合约。",
+          "<code>latest_run_id</code> 和 <code>diagnostic_run.run_id</code>。",
+          "工作台面板使用的品牌、指标、问题和优化动作。"
+        ],
+        refs: [
+          "<code>backend/router/geo.py</code>：<code>get_dashboard_contract</code>",
+          "<code>backend/service/dashboard_snapshots.py</code>：<code>get_dashboard_contract</code>"
+        ]
+      },
+      historyOverview: {
+        id: "12 · 下游消费",
+        title: "历史与 Overview",
+        summary: "历史接口按品牌账号返回时间序列；Overview 返回当前品牌配置下的 QuerySet、指标、归因和方法说明。",
+        inputs: [
+          "<code>GET /api/v1/geo/brands/{brand_id}/history?days=30</code>",
+          "<code>GET /api/v1/geo/overview?brand_config_id=...</code>。"
+        ],
+        process: [
+          "历史接口同步 completed run 快照后，按 days 过滤快照。",
+          "按 metric 生成 <code>by_metric</code> 时间序列。",
+          "Overview 选择最新快照，返回 queryset、global metrics、platforms、competitor_ranking、sources 和 methodology_note。",
+          "没有完成 live run 时 Overview 返回空结构和提示信息。"
+        ],
+        outputs: [
+          "历史趋势：<code>history[]</code>、<code>by_metric</code>、<code>by_intent</code>。",
+          "Overview：<code>queryset</code>、<code>metrics</code>、<code>attribution</code>、<code>methodology_note</code>、<code>latest_run_id</code>。"
+        ],
+        refs: [
+          "<code>backend/router/geo.py</code>：<code>get_brand_history_endpoint</code>、<code>get_overview</code>",
+          "<code>backend/service/dashboard_snapshots.py</code>：<code>get_brand_history</code>、<code>get_overview_payload</code>"
+        ]
+      }
+    };
+
+    const detailId = document.getElementById("detailId");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailSummary = document.getElementById("detailSummary");
+    const detailInputs = document.getElementById("detailInputs");
+    const detailProcess = document.getElementById("detailProcess");
+    const detailOutputs = document.getElementById("detailOutputs");
+    const detailRefs = document.getElementById("detailRefs");
+    const nodes = Array.from(document.querySelectorAll(".node"));
+
+    function renderList(target, items) {
+      target.innerHTML = "";
+      items.forEach((item) => {
+        const li = document.createElement("li");
+        li.innerHTML = item;
+        target.appendChild(li);
+      });
+    }
+
+    function selectModule(key) {
+      const item = modules[key];
+      if (!item) return;
+      nodes.forEach((node) => {
+        node.setAttribute("aria-pressed", String(node.dataset.module === key));
+      });
+      detailId.textContent = item.id;
+      detailTitle.textContent = item.title;
+      detailSummary.textContent = item.summary;
+      renderList(detailInputs, item.inputs);
+      renderList(detailProcess, item.process);
+      renderList(detailOutputs, item.outputs);
+      renderList(detailRefs, item.refs);
+    }
+
+    nodes.forEach((node) => {
+      node.addEventListener("click", () => selectModule(node.dataset.module));
+    });
+
+    selectModule("brandConfig");
+  </script>
+</body>
+</html>

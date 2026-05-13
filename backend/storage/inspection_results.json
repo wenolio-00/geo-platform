@@ -1,0 +1,594 @@
+{
+  "run_2dff1bfb1614": {
+    "run_id": "run_2dff1bfb1614",
+    "results": [
+      {
+        "inspection_id": "insp_4a4e3bc70742",
+        "status": "failed",
+        "platform": "DeepSeek",
+        "model": "deepseek-v4-flash",
+        "query_id": "q_001",
+        "query_text": "金融场景积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": null,
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-12T10:09:27.292919+00:00",
+        "returned_at": "2026-05-12T10:09:33.024492+00:00",
+        "raw_answer": "",
+        "parsed": {},
+        "usage": {},
+        "error": "DeepSeek request failed: Client error '401 Unauthorized' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+      },
+      {
+        "inspection_id": "insp_1c477654c64e",
+        "status": "failed",
+        "platform": "DeepSeek",
+        "model": "deepseek-v4-flash",
+        "query_id": "q_002",
+        "query_text": "选择积分商城管理工具服务商时，应该重点比较哪些能力？",
+        "query_pattern": null,
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "decision_criteria",
+        "request_at": "2026-05-12T10:09:33.024627+00:00",
+        "returned_at": "2026-05-12T10:09:38.456838+00:00",
+        "raw_answer": "",
+        "parsed": {},
+        "usage": {},
+        "error": "DeepSeek request failed: Client error '401 Unauthorized' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+      },
+      {
+        "inspection_id": "insp_772911b1f099",
+        "status": "failed",
+        "platform": "DeepSeek",
+        "model": "deepseek-v4-flash",
+        "query_id": "q_003",
+        "query_text": "杭州兑吧网络科技有限公司和有赞、微盟在积分商城管理工具方面有什么差异？",
+        "query_pattern": null,
+        "query_layer": "adaptive",
+        "topic": "积分商城管理工具",
+        "intent_type": "competitive_comparison",
+        "request_at": "2026-05-12T10:09:38.456999+00:00",
+        "returned_at": "2026-05-12T10:09:43.880648+00:00",
+        "raw_answer": "",
+        "parsed": {},
+        "usage": {},
+        "error": "DeepSeek request failed: Client error '401 Unauthorized' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+      }
+    ],
+    "updated_at": "2026-05-12T10:09:43.880788+00:00"
+  },
+  "run_c6d3533c76f5": {
+    "run_id": "run_c6d3533c76f5",
+    "results": [
+      {
+        "inspection_id": "insp_9a8e84d8e94d",
+        "status": "failed",
+        "platform": "DeepSeek",
+        "model": "deepseek-v4-flash",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-12T10:16:13.644892+00:00",
+        "returned_at": "2026-05-12T10:16:19.737213+00:00",
+        "raw_answer": "",
+        "parsed": {},
+        "usage": {},
+        "error": "DeepSeek request failed: Client error '401 Unauthorized' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+      }
+    ],
+    "updated_at": "2026-05-12T10:16:19.737332+00:00"
+  },
+  "run_651c24b2e184": {
+    "run_id": "run_651c24b2e184",
+    "results": [
+      {
+        "inspection_id": "insp_4ba848e07673",
+        "status": "failed",
+        "platform": "豆包",
+        "model": "doubao-seed-2-0-mini-260215",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-12T11:14:18.679295+00:00",
+        "returned_at": "2026-05-12T11:14:19.309282+00:00",
+        "raw_answer": "",
+        "parsed": {},
+        "usage": {},
+        "error": "豆包 request failed with HTTP 404: ModelNotOpen: Your account %!s(int64=2123344488) has not activated the model doubao-seed-2-0-mini-260215. Please activate the model service in the Ark Console. Request id: 0217785844597291d3a1d4bbb7934834cc5dea1149c19ea5e656c"
+      }
+    ],
+    "updated_at": "2026-05-12T11:14:19.309478+00:00"
+  },
+  "run_9c85f1e2af54": {
+    "run_id": "run_9c85f1e2af54",
+    "results": [
+      {
+        "inspection_id": "insp_669cc2d5fb34",
+        "status": "completed",
+        "platform": "豆包",
+        "model": "doubao-seed-2-0-mini-260215",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-13T02:32:18.951815+00:00",
+        "returned_at": "2026-05-13T02:32:41.890064+00:00",
+        "raw_answer": "{\n    \"answer\": \"在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧），这些厂商均拥有较为成熟的积分商城管理解决方案，能够适配金融场景的积分运营、兑换等相关业务需求。\",\n    \"mentioned_brands\": [\n        {\n            \"name\": \"有赞\",\n            \"aliases_matched\": [],\n            \"position\": 1,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧）\"\n        },\n        {\n            \"name\": \"微盟\",\n            \"aliases_matched\": [],\n            \"position\": 2,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧）\"\n        },\n        {\n            \"name\": \"杭州兑吧网络科技有限公司\",\n            \"aliases_matched\": [\"兑吧\"],\n            \"position\": 3,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧）\"\n        }\n    ],\n    \"citations\": [],\n    \"parse_confidence\": \"high\",\n    \"notes\": \"\"\n}",
+        "parsed": {
+          "answer": "在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧），这些厂商均拥有较为成熟的积分商城管理解决方案，能够适配金融场景的积分运营、兑换等相关业务需求。",
+          "mentioned_brands": [
+            {
+              "name": "有赞",
+              "aliases_matched": [],
+              "position": 1,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧）"
+            },
+            {
+              "name": "微盟",
+              "aliases_matched": [],
+              "position": 2,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧）"
+            },
+            {
+              "name": "杭州兑吧网络科技有限公司",
+              "aliases_matched": [
+                "兑吧"
+              ],
+              "position": 3,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景下，成熟的积分商城管理工具供应商主要有有赞、微盟，以及杭州兑吧网络科技有限公司（品牌别名兑吧）"
+            }
+          ],
+          "citations": [],
+          "parse_confidence": "high",
+          "notes": ""
+        },
+        "usage": {
+          "completion_tokens": 2658,
+          "prompt_tokens": 450,
+          "total_tokens": 3108,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 2267
+          }
+        },
+        "error": null
+      }
+    ],
+    "updated_at": "2026-05-13T02:32:41.890333+00:00"
+  },
+  "run_4210fd8d780b": {
+    "run_id": "run_4210fd8d780b",
+    "results": [
+      {
+        "inspection_id": "insp_0e1c54d29e30",
+        "status": "completed",
+        "platform": "豆包",
+        "model": "doubao-seed-2-0-mini-260215",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-13T02:46:54.523101+00:00",
+        "returned_at": "2026-05-13T02:47:17.097108+00:00",
+        "raw_answer": "{\n    \"answer\": \"在金融场景中，成熟的积分商城管理工具供应商主要有兑吧、有赞、微盟。其中兑吧是杭州兑吧网络科技有限公司旗下的服务品牌，专注于积分商城运营管理工具，可适配金融机构的积分运营需求；有赞、微盟均拥有成熟的会员与积分管理解决方案，能够应用于金融场景的积分商城搭建。\",\n    \"mentioned_brands\": [\n        {\n            \"name\": \"兑吧\",\n            \"aliases_matched\": [\"兑吧\"],\n            \"position\": 1,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商主要有兑吧、有赞、微盟。其中兑吧是杭州兑吧网络科技有限公司旗下的服务品牌，专注于积分商城运营管理工具，可适配金融机构的积分运营需求\"\n        },\n        {\n            \"name\": \"有赞\",\n            \"aliases_matched\": [\"有赞\"],\n            \"position\": 2,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商主要有兑吧、有赞、微盟。有赞、微盟均拥有成熟的会员与积分管理解决方案，能够应用于金融场景的积分商城搭建\"\n        },\n        {\n            \"name\": \"微盟\",\n            \"aliases_matched\": [\"微盟\"],\n            \"position\": 3,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"有赞、微盟均拥有成熟的会员与积分管理解决方案，能够应用于金融场景的积分商城搭建\"\n        }\n    ],\n    \"citations\": [],\n    \"parse_confidence\": \"high\",\n    \"notes\": \"\"\n}",
+        "parsed": {
+          "answer": "在金融场景中，成熟的积分商城管理工具供应商主要有兑吧、有赞、微盟。其中兑吧是杭州兑吧网络科技有限公司旗下的服务品牌，专注于积分商城运营管理工具，可适配金融机构的积分运营需求；有赞、微盟均拥有成熟的会员与积分管理解决方案，能够应用于金融场景的积分商城搭建。",
+          "mentioned_brands": [
+            {
+              "name": "兑吧",
+              "aliases_matched": [
+                "兑吧"
+              ],
+              "position": 1,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商主要有兑吧、有赞、微盟。其中兑吧是杭州兑吧网络科技有限公司旗下的服务品牌，专注于积分商城运营管理工具，可适配金融机构的积分运营需求"
+            },
+            {
+              "name": "有赞",
+              "aliases_matched": [
+                "有赞"
+              ],
+              "position": 2,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商主要有兑吧、有赞、微盟。有赞、微盟均拥有成熟的会员与积分管理解决方案，能够应用于金融场景的积分商城搭建"
+            },
+            {
+              "name": "微盟",
+              "aliases_matched": [
+                "微盟"
+              ],
+              "position": 3,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "有赞、微盟均拥有成熟的会员与积分管理解决方案，能够应用于金融场景的积分商城搭建"
+            }
+          ],
+          "citations": [],
+          "parse_confidence": "high",
+          "notes": ""
+        },
+        "usage": {
+          "completion_tokens": 2934,
+          "prompt_tokens": 450,
+          "total_tokens": 3384,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 2495
+          }
+        },
+        "error": null
+      }
+    ],
+    "updated_at": "2026-05-13T02:47:17.097416+00:00"
+  },
+  "run_2d75d0d0527d": {
+    "run_id": "run_2d75d0d0527d",
+    "results": [
+      {
+        "inspection_id": "insp_2281d01d4f07",
+        "status": "completed",
+        "platform": "豆包",
+        "model": "doubao-seed-2-0-mini-260215",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-13T02:47:52.626996+00:00",
+        "returned_at": "2026-05-13T02:48:29.095806+00:00",
+        "raw_answer": "{\n  \"answer\": \"在金融场景中，常见的成熟积分商城管理工具供应商包括兑吧，以及有赞、微盟、星耀、灵智等平台。\",\n  \"mentioned_brands\": [\n    {\n      \"name\": \"兑吧\",\n      \"aliases_matched\": [\"兑吧\"],\n      \"position\": 1,\n      \"mention_context\": \"standard_listing\",\n      \"sentiment\": \"neutral\",\n      \"evidence\": \"常见的成熟积分商城管理工具供应商包括兑吧\"\n    },\n    {\n      \"name\": \"有赞\",\n      \"aliases_matched\": [],\n      \"position\": 2,\n      \"mention_context\": \"standard_listing\",\n      \"sentiment\": \"neutral\",\n      \"evidence\": \"以及有赞、微盟、星耀、灵智等平台\"\n    },\n    {\n      \"name\": \"微盟\",\n      \"aliases_matched\": [],\n      \"position\": 3,\n      \"mention_context\": \"standard_listing\",\n      \"sentiment\": \"neutral\",\n      \"evidence\": \"以及有赞、微盟、星耀、灵智等平台\"\n    },\n    {\n      \"name\": \"星耀\",\n      \"aliases_matched\": [],\n      \"position\": 4,\n      \"mention_context\": \"standard_listing\",\n      \"sentiment\": \"neutral\",\n      \"evidence\": \"以及有赞、微盟、星耀、灵智等平台\"\n    },\n    {\n      \"name\": \"灵智\",\n      \"aliases_matched\": [],\n      \"position\": 5,\n      \"mention_context\": \"standard_listing\",\n      \"sentiment\": \"neutral\",\n      \"evidence\": \"以及有赞、微盟、星耀、灵智等平台\"\n    }\n  ],\n  \"citations\": [],\n  \"parse_confidence\": \"high\",\n  \"notes\": \"\"\n}",
+        "parsed": {
+          "answer": "在金融场景中，常见的成熟积分商城管理工具供应商包括兑吧，以及有赞、微盟、星耀、灵智等平台。",
+          "mentioned_brands": [
+            {
+              "name": "兑吧",
+              "aliases_matched": [
+                "兑吧"
+              ],
+              "position": 1,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "常见的成熟积分商城管理工具供应商包括兑吧"
+            },
+            {
+              "name": "有赞",
+              "aliases_matched": [],
+              "position": 2,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智等平台"
+            },
+            {
+              "name": "微盟",
+              "aliases_matched": [],
+              "position": 3,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智等平台"
+            },
+            {
+              "name": "星耀",
+              "aliases_matched": [],
+              "position": 4,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智等平台"
+            },
+            {
+              "name": "灵智",
+              "aliases_matched": [],
+              "position": 5,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智等平台"
+            }
+          ],
+          "citations": [],
+          "parse_confidence": "high",
+          "notes": ""
+        },
+        "usage": {
+          "completion_tokens": 3521,
+          "prompt_tokens": 463,
+          "total_tokens": 3984,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 3074
+          }
+        },
+        "error": null
+      }
+    ],
+    "updated_at": "2026-05-13T02:48:29.095920+00:00"
+  },
+  "run_220a0acf865b": {
+    "run_id": "run_220a0acf865b",
+    "results": [
+      {
+        "inspection_id": "insp_4594b7735431",
+        "status": "completed",
+        "platform": "豆包",
+        "model": "doubao-seed-2-0-mini-260215",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-13T02:49:23.312756+00:00",
+        "returned_at": "2026-05-13T02:49:56.111586+00:00",
+        "raw_answer": "{\n    \"answer\": \"在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智，这些均是在积分商城管理领域具备成熟服务能力的服务商。\",\n    \"mentioned_brands\": [\n        {\n            \"name\": \"杭州兑吧网络科技有限公司\",\n            \"aliases_matched\": [\"兑吧\", \"兑吧网络\", \"Duiba\"],\n            \"position\": 1,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）\"\n        },\n        {\n            \"name\": \"有赞\",\n            \"aliases_matched\": [],\n            \"position\": 2,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智\"\n        },\n        {\n            \"name\": \"微盟\",\n            \"aliases_matched\": [],\n            \"position\": 3,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智\"\n        },\n        {\n            \"name\": \"星耀\",\n            \"aliases_matched\": [],\n            \"position\": 4,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智\"\n        },\n        {\n            \"name\": \"灵智\",\n            \"aliases_matched\": [],\n            \"position\": 5,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智\"\n        }\n    ],\n    \"citations\": [],\n    \"parse_confidence\": \"high\",\n    \"notes\": \"\"\n}",
+        "parsed": {
+          "answer": "在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智，这些均是在积分商城管理领域具备成熟服务能力的服务商。",
+          "mentioned_brands": [
+            {
+              "name": "杭州兑吧网络科技有限公司",
+              "aliases_matched": [
+                "兑吧",
+                "兑吧网络",
+                "Duiba"
+              ],
+              "position": 1,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）"
+            },
+            {
+              "name": "有赞",
+              "aliases_matched": [],
+              "position": 2,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智"
+            },
+            {
+              "name": "微盟",
+              "aliases_matched": [],
+              "position": 3,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智"
+            },
+            {
+              "name": "星耀",
+              "aliases_matched": [],
+              "position": 4,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智"
+            },
+            {
+              "name": "灵智",
+              "aliases_matched": [],
+              "position": 5,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "包括杭州兑吧网络科技有限公司（别名兑吧、兑吧网络、Duiba）、有赞、微盟、星耀、灵智"
+            }
+          ],
+          "citations": [],
+          "parse_confidence": "high",
+          "notes": ""
+        },
+        "usage": {
+          "completion_tokens": 3380,
+          "prompt_tokens": 463,
+          "total_tokens": 3843,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 2805
+          }
+        },
+        "error": null
+      }
+    ],
+    "updated_at": "2026-05-13T02:49:56.111719+00:00"
+  },
+  "run_5356bba21e5c": {
+    "run_id": "run_5356bba21e5c",
+    "results": [
+      {
+        "inspection_id": "insp_26b6fb7fdc4e",
+        "status": "completed",
+        "platform": "豆包",
+        "model": "doubao-seed-2-0-mini-260215",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-13T02:50:51.827493+00:00",
+        "returned_at": "2026-05-13T02:51:37.814205+00:00",
+        "raw_answer": "{\n    \"answer\": \"在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。\",\n    \"mentioned_brands\": [\n        {\n            \"name\": \"兑吧\",\n            \"aliases_matched\": [\"兑吧\", \"兑吧网络\", \"Duiba\"],\n            \"position\": 1,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"有赞\",\n            \"aliases_matched\": [],\n            \"position\": 2,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"微盟\",\n            \"aliases_matched\": [],\n            \"position\": 3,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"星耀\",\n            \"aliases_matched\": [],\n            \"position\": 4,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"灵智\",\n            \"aliases_matched\": [],\n            \"position\": 5,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。\"\n        }\n    ],\n    \"citations\": [],\n    \"parse_confidence\": \"high\",\n    \"notes\": \"\"\n}",
+        "parsed": {
+          "answer": "在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。",
+          "mentioned_brands": [
+            {
+              "name": "兑吧",
+              "aliases_matched": [
+                "兑吧",
+                "兑吧网络",
+                "Duiba"
+              ],
+              "position": 1,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。"
+            },
+            {
+              "name": "有赞",
+              "aliases_matched": [],
+              "position": 2,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。"
+            },
+            {
+              "name": "微盟",
+              "aliases_matched": [],
+              "position": 3,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。"
+            },
+            {
+              "name": "星耀",
+              "aliases_matched": [],
+              "position": 4,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。"
+            },
+            {
+              "name": "灵智",
+              "aliases_matched": [],
+              "position": 5,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "在金融场景中，成熟的积分商城管理工具供应商包括兑吧（兑吧网络、Duiba）、有赞、微盟、星耀、灵智。"
+            }
+          ],
+          "citations": [],
+          "parse_confidence": "high",
+          "notes": ""
+        },
+        "usage": {
+          "completion_tokens": 3275,
+          "prompt_tokens": 463,
+          "total_tokens": 3738,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 2702
+          }
+        },
+        "error": null
+      }
+    ],
+    "updated_at": "2026-05-13T02:51:37.814366+00:00"
+  },
+  "run_f85c6d84f863": {
+    "run_id": "run_f85c6d84f863",
+    "results": [
+      {
+        "inspection_id": "insp_9d2ecb33e73a",
+        "status": "completed",
+        "platform": "豆包",
+        "model": "doubao-seed-2-0-mini-260215",
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_pattern": "category_rec",
+        "query_layer": "core_anchor",
+        "topic": "积分商城管理工具",
+        "intent_type": "vendor_recommendation",
+        "request_at": "2026-05-13T03:22:38.119116+00:00",
+        "returned_at": "2026-05-13T03:23:10.558172+00:00",
+        "raw_answer": "{\n    \"answer\": \"在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba），以及有赞、微盟、星耀、灵智。\",\n    \"mentioned_brands\": [\n        {\n            \"name\": \"杭州兑吧网络科技有限公司\",\n            \"aliases_matched\": [\"兑吧\", \"兑吧网络\", \"Duiba\"],\n            \"position\": 1,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba）\"\n        },\n        {\n            \"name\": \"有赞\",\n            \"aliases_matched\": [\"有赞\"],\n            \"position\": 2,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"微盟\",\n            \"aliases_matched\": [\"微盟\"],\n            \"position\": 3,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"星耀\",\n            \"aliases_matched\": [\"星耀\"],\n            \"position\": 4,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"灵智\",\n            \"aliases_matched\": [\"灵智\"],\n            \"position\": 5,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        }\n    ],\n    \"citations\": [],\n    \"parse_confidence\": \"high\",\n    \"notes\": \"\"\n}",
+        "parsed": {
+          "answer": "在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba），以及有赞、微盟、星耀、灵智。",
+          "mentioned_brands": [
+            {
+              "name": "杭州兑吧网络科技有限公司",
+              "aliases_matched": [
+                "兑吧",
+                "兑吧网络",
+                "Duiba"
+              ],
+              "position": 1,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba）"
+            },
+            {
+              "name": "有赞",
+              "aliases_matched": [
+                "有赞"
+              ],
+              "position": 2,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智。"
+            },
+            {
+              "name": "微盟",
+              "aliases_matched": [
+                "微盟"
+              ],
+              "position": 3,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智。"
+            },
+            {
+              "name": "星耀",
+              "aliases_matched": [
+                "星耀"
+              ],
+              "position": 4,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智。"
+            },
+            {
+              "name": "灵智",
+              "aliases_matched": [
+                "灵智"
+              ],
+              "position": 5,
+              "mention_context": "standard_listing",
+              "sentiment": "neutral",
+              "evidence": "以及有赞、微盟、星耀、灵智。"
+            }
+          ],
+          "citations": [],
+          "parse_confidence": "high",
+          "notes": ""
+        },
+        "usage": {
+          "completion_tokens": 2739,
+          "prompt_tokens": 463,
+          "total_tokens": 3202,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 2245
+          }
+        },
+        "error": null
+      }
+    ],
+    "updated_at": "2026-05-13T03:23:10.558912+00:00"
+  }
+}

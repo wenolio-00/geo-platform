@@ -1,0 +1,92 @@
+{
+  "id": "rule_activation_evaluator_v1",
+  "name": "Rule Activation Evaluator",
+  "version": "1.0.0",
+  "language_versions": ["zh", "en"],
+  "workflow_position": {
+    "insert_after": "rule_extraction",
+    "insert_before": "create_action",
+    "reason": "在平台内容偏好规则被提取后、ActionTask 生成前增加规则激活闸门，避免低质量自动规则直接进入内容生产。"
+  },
+  "default_decision_policy": {
+    "mvp_default": "keep_baseline",
+    "activation_requires": [
+      "positive_effect_delta",
+      "no_utility_check_decline",
+      "no_fabrication_risk",
+      "platform_level_evidence",
+      "human_review_or_sufficient_retest_data"
+    ],
+    "fallback_rule": "baseline_rule"
+  },
+  "allowed_decisions": [
+    "activate_global",
+    "activate_platform_specific",
+    "activate_task_specific",
+    "merge_into_baseline",
+    "keep_baseline",
+    "reject_rule_set"
+  ],
+  "input_contract": {
+    "baseline_rule": "object|string",
+    "auto_generated_rule_set": "object|string",
+    "evaluation_data": {
+      "brand_mention_rate": "number|null",
+      "answer_share": "number|null",
+      "position_index": "number|null",
+      "sentiment_score": "number|null",
+      "owned_source_citation_rate": "number|null",
+      "evidence_completeness": "number|null",
+      "faq_hit_rate": "number|null",
+      "competitor_suppression": "number|null",
+      "utility_check": "number|null",
+      "effect_delta": "object|null",
+      "platform_breakdown": "array|null",
+      "human_review": "object|null"
+    },
+    "project_context": {
+      "entity_name": "string",
+      "industry_name": "string",
+      "competitors": "array",
+      "funnel_stage": "tofu|mofu|bofu|null",
+      "query_pattern": "scenario_explore|category_rec|competitive_comp|deep_background|decision_confirm|null",
+      "platforms": "array",
+      "action_type": "string|null",
+      "target_doc_url": "string|null"
+    }
+  },
+  "output_contract": {
+    "decision": "activate_global|activate_platform_specific|activate_task_specific|merge_into_baseline|keep_baseline|reject_rule_set",
+    "confidence": "high|medium|low",
+    "activation_scope": {
+      "platforms": [],
+      "query_patterns": [],
+      "action_types": []
+    },
+    "risk_check": "array",
+    "rules_to_keep": "array",
+    "rules_to_merge_into_baseline": "array",
+    "rules_to_reject": "array",
+    "recommended_next_action": "array"
+  },
+  "metric_gate": {
+    "brand_mention_rate_delta_min": 0,
+    "answer_share_delta_min": 0,
+    "position_index_delta_min": 0,
+    "sentiment_score_delta_min": 0,
+    "owned_source_citation_rate_delta_min": 0,
+    "utility_check_delta_min": 0,
+    "competitor_suppression_delta_max": 0,
+    "requires_platform_split": true,
+    "requires_query_pattern_split": true
+  },
+  "risk_blockers": [
+    "fabricated_data",
+    "fabricated_customer_case",
+    "unsupported_ranking_claim",
+    "competitor_attack",
+    "brand_entity_inconsistency",
+    "evidence_traceability_issue",
+    "utility_check_decline"
+  ]
+}

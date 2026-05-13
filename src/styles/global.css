@@ -1,0 +1,99 @@
+/* ═══════════════════════════════════════════════════════
+   GEO Platform — Global Styles
+   Aesthetic: Apple.com — clean white surface, SF Pro, spacious
+   ═══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── Surface ── */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --bg-card: #f5f5f7;
+  --bg-card-hover: #ebebeb;
+  --bg-elevated: #f0f0f0;
+  --border: rgba(0, 0, 0, 0.07);
+  --border-active: rgba(0, 0, 0, 0.12);
+
+  /* ── Text ── */
+  --text-primary: #1d1d1f;
+  --text-secondary: #86868b;
+  --text-muted: #a1a1a6;
+  --text-dim: #d2d2d7;
+
+  /* ── Accent ── */
+  --accent: #0071e3;
+  --accent-soft: rgba(0, 113, 227, 0.1);
+  --accent-glow: rgba(0, 113, 227, 0.2);
+
+  /* ── Brand accent (kept from original) ── */
+  --gold: #a58b63;
+  --gold-soft: rgba(165, 139, 99, 0.12);
+
+  /* ── Semantic ── */
+  --green: #34c759;
+  --green-soft: rgba(52, 199, 89, 0.1);
+  --red: #ef4444;
+  --red-soft: rgba(239, 68, 68, 0.1);
+  --amber: #ff9500;
+  --amber-soft: rgba(255, 149, 0, 0.1);
+  --purple: #af52de;
+  --purple-soft: rgba(175, 82, 222, 0.1);
+
+  /* ── Platform colors ── */
+  --deepseek: #4F6BF6;
+  --kimi: #FF6B35;
+  --doubao: #22D3EE;
+  --tongyi: #F97316;
+  --wenxin: #3B82F6;
+  --yuanbao: #A855F7;
+
+  /* ── Type ── */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+               "PingFang SC", "Helvetica Neue", sans-serif;
+  --font-mono: -apple-system, BlinkMacSystemFont, "SF Mono", "IBM Plex Mono", monospace;
+
+  /* ── Spacing ── */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 14px; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+/* ── Utility ── */
+.mono { font-family: var(--font-mono); }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-amber { color: var(--amber); }
+.text-muted { color: var(--text-muted); }
+.text-secondary { color: var(--text-secondary); }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up { animation: fadeUp 0.4s ease forwards; }
+.fade-up-1 { animation-delay: 0.05s; opacity: 0; }
+.fade-up-2 { animation-delay: 0.1s; opacity: 0; }
+.fade-up-3 { animation-delay: 0.15s; opacity: 0; }
+.fade-up-4 { animation-delay: 0.2s; opacity: 0; }

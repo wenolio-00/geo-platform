@@ -1,0 +1,485 @@
+{
+  "bc_180f5938cc5c": {
+    "brand_config_id": "bc_180f5938cc5c",
+    "entity_id": "entity_5708fcfac997",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      }
+    ],
+    "aliases_count": 2,
+    "topics_monitored": 1,
+    "competitors_count": 2,
+    "created_at": "2026-05-12T10:09:27.281878+00:00",
+    "updated_at": "2026-05-12T10:09:27.281878+00:00"
+  },
+  "bc_e692cb07dce4": {
+    "brand_config_id": "bc_e692cb07dce4",
+    "entity_id": "entity_1ae2978a1d30",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      }
+    ],
+    "aliases_count": 2,
+    "topics_monitored": 1,
+    "competitors_count": 2,
+    "created_at": "2026-05-12T10:16:13.633887+00:00",
+    "updated_at": "2026-05-12T10:16:13.633887+00:00"
+  },
+  "bc_d1343f4a08d2": {
+    "brand_config_id": "bc_d1343f4a08d2",
+    "entity_id": "entity_5de9938a7c48",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      }
+    ],
+    "aliases_count": 2,
+    "topics_monitored": 1,
+    "competitors_count": 2,
+    "created_at": "2026-05-12T11:14:18.672448+00:00",
+    "updated_at": "2026-05-12T11:14:18.672448+00:00"
+  },
+  "bc_62bdb1b524a7": {
+    "brand_config_id": "bc_62bdb1b524a7",
+    "entity_id": "entity_fab7bdafca66",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      }
+    ],
+    "aliases_count": 2,
+    "topics_monitored": 1,
+    "competitors_count": 2,
+    "created_at": "2026-05-13T02:32:18.940574+00:00",
+    "updated_at": "2026-05-13T02:32:18.940574+00:00"
+  },
+  "bc_f53b8a7b9b70": {
+    "brand_config_id": "bc_f53b8a7b9b70",
+    "entity_id": "entity_010d9496c54a",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      }
+    ],
+    "aliases_count": 2,
+    "topics_monitored": 1,
+    "competitors_count": 2,
+    "created_at": "2026-05-13T02:46:54.508078+00:00",
+    "updated_at": "2026-05-13T02:46:54.508078+00:00"
+  },
+  "bc_2971e67efc86": {
+    "brand_config_id": "bc_2971e67efc86",
+    "entity_id": "entity_dfd2d4153e97",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "兑吧网络",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营",
+      "内容/媒体App"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      },
+      {
+        "topic_name": "会员权益运营平台",
+        "business_line": "会员权益",
+        "priority": 2
+      },
+      {
+        "topic_name": "互动广告接入",
+        "business_line": "互动广告",
+        "priority": 3
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "星耀",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      },
+      {
+        "name": "灵智",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      }
+    ],
+    "aliases_count": 3,
+    "topics_monitored": 3,
+    "competitors_count": 4,
+    "created_at": "2026-05-13T02:47:52.601032+00:00",
+    "updated_at": "2026-05-13T02:47:52.601032+00:00"
+  },
+  "bc_7f0524be667a": {
+    "brand_config_id": "bc_7f0524be667a",
+    "entity_id": "entity_3721a40b744a",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "兑吧网络",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营",
+      "内容/媒体App"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      },
+      {
+        "topic_name": "会员权益运营平台",
+        "business_line": "会员权益",
+        "priority": 2
+      },
+      {
+        "topic_name": "互动广告接入",
+        "business_line": "互动广告",
+        "priority": 3
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "星耀",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      },
+      {
+        "name": "灵智",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      }
+    ],
+    "aliases_count": 3,
+    "topics_monitored": 3,
+    "competitors_count": 4,
+    "created_at": "2026-05-13T02:49:23.283986+00:00",
+    "updated_at": "2026-05-13T02:49:23.283986+00:00"
+  },
+  "bc_392610aca155": {
+    "brand_config_id": "bc_392610aca155",
+    "entity_id": "entity_e91ab4a2d055",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "兑吧网络",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营",
+      "内容/媒体App"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      },
+      {
+        "topic_name": "会员权益运营平台",
+        "business_line": "会员权益",
+        "priority": 2
+      },
+      {
+        "topic_name": "互动广告接入",
+        "business_line": "互动广告",
+        "priority": 3
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "星耀",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      },
+      {
+        "name": "灵智",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      }
+    ],
+    "aliases_count": 3,
+    "topics_monitored": 3,
+    "competitors_count": 4,
+    "created_at": "2026-05-13T02:50:51.793746+00:00",
+    "updated_at": "2026-05-13T02:50:51.793746+00:00"
+  },
+  "bc_e03e63ce7577": {
+    "brand_config_id": "bc_e03e63ce7577",
+    "entity_id": "entity_2b83cbac6925",
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": [
+      "兑吧",
+      "兑吧网络",
+      "Duiba"
+    ],
+    "industry_segments": [
+      "金融场景",
+      "互联网App运营",
+      "内容/媒体App"
+    ],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      },
+      {
+        "topic_name": "会员权益运营平台",
+        "business_line": "会员权益",
+        "priority": 2
+      },
+      {
+        "topic_name": "互动广告接入",
+        "business_line": "互动广告",
+        "priority": 3
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": [
+          "Youzan"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": [
+          "Weimob"
+        ],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "星耀",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      },
+      {
+        "name": "灵智",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      }
+    ],
+    "aliases_count": 3,
+    "topics_monitored": 3,
+    "competitors_count": 4,
+    "created_at": "2026-05-13T03:22:38.084175+00:00",
+    "updated_at": "2026-05-13T03:22:38.084175+00:00"
+  }
+}

@@ -1,0 +1,1649 @@
+{
+  "run_2dff1bfb1614": {
+    "run_id": "run_2dff1bfb1614",
+    "brand_config_id": "bc_180f5938cc5c",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "deepseek_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": [
+      "DeepSeek"
+    ],
+    "inspection_batch_id": "batch_5e57b05fdb66",
+    "status": "failed",
+    "progress": 100,
+    "message": "Diagnostic run failed",
+    "created_at": "2026-05-12T10:09:27.289503+00:00",
+    "updated_at": "2026-05-12T10:09:43.884705+00:00",
+    "report_data": null,
+    "inspection_started_at": "2026-05-12T10:09:27.291464+00:00",
+    "queryset": {
+      "queryset_id": "qs_a295f268b98c",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_fe7871082e0c",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟"
+          ]
+        },
+        {
+          "query_id": "q_002",
+          "query_text": "选择积分商城管理工具服务商时，应该重点比较哪些能力？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "intent_type": "decision_criteria",
+          "related_competitors": [
+            "有赞",
+            "微盟"
+          ]
+        },
+        {
+          "query_id": "q_003",
+          "query_text": "杭州兑吧网络科技有限公司和有赞、微盟在积分商城管理工具方面有什么差异？",
+          "query_layer": "adaptive",
+          "run_scope": "production",
+          "metric_scope": "competitive_gap",
+          "topic": "积分商城管理工具",
+          "intent_type": "competitive_comparison",
+          "related_competitors": [
+            "有赞",
+            "微盟"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "DeepSeek"
+    ],
+    "error": "All 3 inspection results failed; no completed results to aggregate.",
+    "inspection_completed_at": "2026-05-12T10:09:43.884444+00:00"
+  },
+  "run_c6d3533c76f5": {
+    "run_id": "run_c6d3533c76f5",
+    "brand_config_id": "bc_e692cb07dce4",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "deepseek_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": [
+      "DeepSeek"
+    ],
+    "inspection_batch_id": "batch_e9b8102b84f7",
+    "status": "failed",
+    "progress": 100,
+    "message": "Diagnostic run failed",
+    "created_at": "2026-05-12T10:16:13.641306+00:00",
+    "updated_at": "2026-05-12T10:16:19.739651+00:00",
+    "report_data": null,
+    "inspection_started_at": "2026-05-12T10:16:13.643045+00:00",
+    "queryset": {
+      "queryset_id": "qs_a822d9bf85be",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_88ff8f529d5f",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "DeepSeek"
+    ],
+    "error": "All 1 inspection results failed; no completed results to aggregate. First failure: DeepSeek request failed: Client error '401 Unauthorized' for url 'https://api.deepseek.com/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401",
+    "inspection_completed_at": "2026-05-12T10:16:19.739478+00:00"
+  },
+  "run_651c24b2e184": {
+    "run_id": "run_651c24b2e184",
+    "brand_config_id": "bc_d1343f4a08d2",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "multi_platform_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": [
+      "豆包"
+    ],
+    "inspection_batch_id": "batch_0c2fefa6355f",
+    "status": "failed",
+    "progress": 100,
+    "message": "Diagnostic run failed",
+    "created_at": "2026-05-12T11:14:18.676359+00:00",
+    "updated_at": "2026-05-12T11:14:19.314961+00:00",
+    "report_data": null,
+    "inspection_started_at": "2026-05-12T11:14:18.677803+00:00",
+    "queryset": {
+      "queryset_id": "qs_58442ad11a90",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_2e5b3fb6800d",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "豆包"
+    ],
+    "error": "All 1 inspection results failed; no completed results to aggregate. First failure: 豆包 request failed with HTTP 404: ModelNotOpen: Your account %!s(int64=2123344488) has not activated the model doubao-seed-2-0-mini-260215. Please activate the model service in the Ark Console. Request id: 0217785844597291d3a1d4bbb7934834cc5dea1149c19ea5e656c",
+    "inspection_completed_at": "2026-05-12T11:14:19.314594+00:00"
+  },
+  "run_9c85f1e2af54": {
+    "run_id": "run_9c85f1e2af54",
+    "brand_config_id": "bc_62bdb1b524a7",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "multi_platform_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": [
+      "豆包"
+    ],
+    "inspection_batch_id": "batch_8a4604929d03",
+    "status": "completed",
+    "progress": 100,
+    "message": "Diagnostic report completed",
+    "created_at": "2026-05-13T02:32:18.947892+00:00",
+    "updated_at": "2026-05-13T02:32:41.900734+00:00",
+    "report_data": {
+      "meta": {
+        "report_id": "report_4f38138ea46d",
+        "contract_version": "report_data_v1",
+        "template_version": "geo_report_generator_goose_yellow_20260509",
+        "brand_name": "杭州兑吧网络科技有限公司",
+        "brand_tagline": "积分商城管理工具",
+        "report_date": "2026-05-13",
+        "generated_at": "2026-05-13T02:32:41.899348+00:00",
+        "total_queries": 1,
+        "total_competitors": 2
+      },
+      "lineage": {
+        "brand_config_id": "bc_62bdb1b524a7",
+        "entity_id": "entity_fab7bdafca66",
+        "queryset_id": "qs_6b867bb732ed",
+        "queryset_version": "rule_matrix_v1",
+        "inspection_batch_id": "batch_8a4604929d03",
+        "inspection_started_at": "2026-05-13T02:32:18.950216+00:00",
+        "inspection_completed_at": "2026-05-13T02:32:41.896243+00:00",
+        "aggregation_version": "report_aggregation_v2",
+        "queryset_strategy": "rule_matrix_v1",
+        "queryset_source": "matrix_api_v1",
+        "inspection_mode": "multi_platform_live_v1",
+        "platforms_requested": [
+          "豆包"
+        ],
+        "matrix_api_request_id": "mx_local_7f4f7cf4f726"
+      },
+      "audit": {
+        "missing_fields": [],
+        "empty_sections": [
+          "sources",
+          "source_gap"
+        ],
+        "truncated": [],
+        "validation_errors": [],
+        "schema_version": "report_data_schema_v1",
+        "source": "api",
+        "raw_results_persisted": true,
+        "platforms_inspected": [
+          "豆包"
+        ],
+        "platforms_failed": [],
+        "inspection_failures_count": 0,
+        "expected_samples": 1,
+        "completed_samples": 1,
+        "missing_samples": 0
+      },
+      "executive_summary": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 3.0，AI 推荐度为 16.7。",
+      "global": {
+        "natural_visibility": 1.0,
+        "rank": 3.0,
+        "visibility": 0.3333,
+        "sentiment_score": 0.5,
+        "ai_recommend_score": 16.66,
+        "own_citations": 0,
+        "competitor_suppression_rate": 0.0,
+        "summary_text": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 3.0，AI 推荐度为 16.7。"
+      },
+      "competitor_ranking": [
+        {
+          "name": "杭州兑吧网络科技有限公司",
+          "mention_rate": 1.0,
+          "is_self": true
+        },
+        {
+          "name": "有赞",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "微盟",
+          "mention_rate": 1.0,
+          "is_self": false
+        }
+      ],
+      "platforms": [
+        {
+          "name": "豆包",
+          "samples": 1,
+          "mention_rate": 1.0,
+          "visibility": 0.3333,
+          "rank": 3.0,
+          "ai_recommend_score": 16.66,
+          "competitor_rank": 1
+        }
+      ],
+      "sources": [],
+      "source_gap": [],
+      "sentiment": {
+        "positive_rate": 0.0,
+        "neutral_rate": 1.0,
+        "negative_rate": 0.0
+      },
+      "topics": [
+        {
+          "name": "积分商城管理工具",
+          "positive": 0,
+          "neutral": 100,
+          "negative": 0,
+          "change": "flat"
+        }
+      ],
+      "optimization_recommendations": [
+        {
+          "priority": "P1",
+          "title": "增强自有信源",
+          "text": "将产品页、案例页、FAQ 和白皮书改造成更容易被 AI 摘取的事实型内容。"
+        }
+      ],
+      "retest_plan": {
+        "next_queryset_strategy": "rule_matrix_v1",
+        "next_inspection_mode": "multi_platform_live_v1",
+        "recommended_interval_days": 7
+      },
+      "brand_config": {
+        "brand_config_id": "bc_62bdb1b524a7",
+        "entity_id": "entity_fab7bdafca66",
+        "entity_name": "杭州兑吧网络科技有限公司",
+        "entity_aliases": [
+          "兑吧",
+          "Duiba"
+        ],
+        "industry_segments": [
+          "金融场景",
+          "互联网App运营"
+        ],
+        "topics": [
+          {
+            "topic_name": "积分商城管理工具",
+            "business_line": "积分商城",
+            "priority": 1
+          }
+        ],
+        "competitors": [
+          {
+            "name": "有赞",
+            "aliases": [
+              "Youzan"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "微盟",
+            "aliases": [
+              "Weimob"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          }
+        ],
+        "aliases_count": 2,
+        "topics_monitored": 1,
+        "competitors_count": 2,
+        "created_at": "2026-05-13T02:32:18.940574+00:00",
+        "updated_at": "2026-05-13T02:32:18.940574+00:00",
+        "queries": [
+          {
+            "query_id": "q_001",
+            "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+            "query_layer": "core_anchor",
+            "run_scope": "production",
+            "metric_scope": "core_trend",
+            "topic": "积分商城管理工具",
+            "query_pattern": "category_rec",
+            "intent_type": "vendor_recommendation",
+            "related_competitors": [
+              "有赞",
+              "微盟"
+            ]
+          }
+        ],
+        "queries_count": 1
+      },
+      "insights": [
+        {
+          "priority": "P1",
+          "text": "杭州兑吧网络科技有限公司 被提及时平均位次为 3.0，推荐顺序弱于理想阈值，需要强化差异化证据。"
+        },
+        {
+          "priority": "P1",
+          "text": "本次 AI 回答未产生可归因为品牌自有信源的引用，官网、案例页和 FAQ 的可引用性仍需提升。"
+        }
+      ]
+    },
+    "inspection_started_at": "2026-05-13T02:32:18.950216+00:00",
+    "queryset": {
+      "queryset_id": "qs_6b867bb732ed",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_7f4f7cf4f726",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "豆包"
+    ],
+    "inspection_completed_at": "2026-05-13T02:32:41.896243+00:00"
+  },
+  "run_4210fd8d780b": {
+    "run_id": "run_4210fd8d780b",
+    "brand_config_id": "bc_f53b8a7b9b70",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "multi_platform_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": [
+      "豆包"
+    ],
+    "inspection_batch_id": "batch_c49b65fe7d85",
+    "status": "completed",
+    "progress": 100,
+    "message": "Diagnostic report completed",
+    "created_at": "2026-05-13T02:46:54.517045+00:00",
+    "updated_at": "2026-05-13T02:47:17.108227+00:00",
+    "report_data": {
+      "meta": {
+        "report_id": "report_872af84fc134",
+        "contract_version": "report_data_v1",
+        "template_version": "geo_report_generator_goose_yellow_20260509",
+        "brand_name": "杭州兑吧网络科技有限公司",
+        "brand_tagline": "积分商城管理工具",
+        "report_date": "2026-05-13",
+        "generated_at": "2026-05-13T02:47:17.107407+00:00",
+        "total_queries": 1,
+        "total_competitors": 2
+      },
+      "lineage": {
+        "brand_config_id": "bc_f53b8a7b9b70",
+        "entity_id": "entity_010d9496c54a",
+        "queryset_id": "qs_f5c82b8aff8c",
+        "queryset_version": "rule_matrix_v1",
+        "inspection_batch_id": "batch_c49b65fe7d85",
+        "inspection_started_at": "2026-05-13T02:46:54.520552+00:00",
+        "inspection_completed_at": "2026-05-13T02:47:17.103935+00:00",
+        "aggregation_version": "report_aggregation_v2",
+        "queryset_strategy": "rule_matrix_v1",
+        "queryset_source": "matrix_api_v1",
+        "inspection_mode": "multi_platform_live_v1",
+        "platforms_requested": [
+          "豆包"
+        ],
+        "matrix_api_request_id": "mx_local_861b65b95355"
+      },
+      "audit": {
+        "missing_fields": [],
+        "empty_sections": [
+          "sources",
+          "source_gap"
+        ],
+        "truncated": [],
+        "validation_errors": [],
+        "schema_version": "report_data_schema_v1",
+        "source": "api",
+        "raw_results_persisted": true,
+        "platforms_inspected": [
+          "豆包"
+        ],
+        "platforms_failed": [],
+        "inspection_failures_count": 0,
+        "expected_samples": 1,
+        "completed_samples": 1,
+        "missing_samples": 0
+      },
+      "executive_summary": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。",
+      "global": {
+        "natural_visibility": 1.0,
+        "rank": 1.0,
+        "visibility": 1.0,
+        "sentiment_score": 0.5,
+        "ai_recommend_score": 50.0,
+        "own_citations": 0,
+        "competitor_suppression_rate": 0.0,
+        "summary_text": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。"
+      },
+      "competitor_ranking": [
+        {
+          "name": "杭州兑吧网络科技有限公司",
+          "mention_rate": 1.0,
+          "is_self": true
+        },
+        {
+          "name": "有赞",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "微盟",
+          "mention_rate": 1.0,
+          "is_self": false
+        }
+      ],
+      "platforms": [
+        {
+          "name": "豆包",
+          "samples": 1,
+          "mention_rate": 1.0,
+          "visibility": 1.0,
+          "rank": 1.0,
+          "ai_recommend_score": 50.0,
+          "competitor_rank": 1
+        }
+      ],
+      "sources": [],
+      "source_gap": [],
+      "sentiment": {
+        "positive_rate": 0.0,
+        "neutral_rate": 1.0,
+        "negative_rate": 0.0
+      },
+      "topics": [
+        {
+          "name": "积分商城管理工具",
+          "positive": 0,
+          "neutral": 100,
+          "negative": 0,
+          "change": "flat"
+        }
+      ],
+      "optimization_recommendations": [
+        {
+          "priority": "P1",
+          "title": "增强自有信源",
+          "text": "将产品页、案例页、FAQ 和白皮书改造成更容易被 AI 摘取的事实型内容。"
+        }
+      ],
+      "retest_plan": {
+        "next_queryset_strategy": "rule_matrix_v1",
+        "next_inspection_mode": "multi_platform_live_v1",
+        "recommended_interval_days": 7
+      },
+      "brand_config": {
+        "brand_config_id": "bc_f53b8a7b9b70",
+        "entity_id": "entity_010d9496c54a",
+        "entity_name": "杭州兑吧网络科技有限公司",
+        "entity_aliases": [
+          "兑吧",
+          "Duiba"
+        ],
+        "industry_segments": [
+          "金融场景",
+          "互联网App运营"
+        ],
+        "topics": [
+          {
+            "topic_name": "积分商城管理工具",
+            "business_line": "积分商城",
+            "priority": 1
+          }
+        ],
+        "competitors": [
+          {
+            "name": "有赞",
+            "aliases": [
+              "Youzan"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "微盟",
+            "aliases": [
+              "Weimob"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          }
+        ],
+        "aliases_count": 2,
+        "topics_monitored": 1,
+        "competitors_count": 2,
+        "created_at": "2026-05-13T02:46:54.508078+00:00",
+        "updated_at": "2026-05-13T02:46:54.508078+00:00",
+        "queries": [
+          {
+            "query_id": "q_001",
+            "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+            "query_layer": "core_anchor",
+            "run_scope": "production",
+            "metric_scope": "core_trend",
+            "topic": "积分商城管理工具",
+            "query_pattern": "category_rec",
+            "intent_type": "vendor_recommendation",
+            "related_competitors": [
+              "有赞",
+              "微盟"
+            ]
+          }
+        ],
+        "queries_count": 1
+      },
+      "insights": [
+        {
+          "priority": "P1",
+          "text": "本次 AI 回答未产生可归因为品牌自有信源的引用，官网、案例页和 FAQ 的可引用性仍需提升。"
+        }
+      ]
+    },
+    "inspection_started_at": "2026-05-13T02:46:54.520552+00:00",
+    "queryset": {
+      "queryset_id": "qs_f5c82b8aff8c",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_861b65b95355",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "豆包"
+    ],
+    "inspection_completed_at": "2026-05-13T02:47:17.103935+00:00"
+  },
+  "run_2d75d0d0527d": {
+    "run_id": "run_2d75d0d0527d",
+    "brand_config_id": "bc_2971e67efc86",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "multi_platform_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": null,
+    "inspection_batch_id": "batch_68862dda6e49",
+    "status": "completed",
+    "progress": 100,
+    "message": "Diagnostic report completed",
+    "created_at": "2026-05-13T02:47:52.613084+00:00",
+    "updated_at": "2026-05-13T02:48:29.105072+00:00",
+    "report_data": {
+      "meta": {
+        "report_id": "report_b424ef59a20d",
+        "contract_version": "report_data_v1",
+        "template_version": "geo_report_generator_goose_yellow_20260509",
+        "brand_name": "杭州兑吧网络科技有限公司",
+        "brand_tagline": "积分商城管理工具 / 会员权益运营平台",
+        "report_date": "2026-05-13",
+        "generated_at": "2026-05-13T02:48:29.104253+00:00",
+        "total_queries": 1,
+        "total_competitors": 4
+      },
+      "lineage": {
+        "brand_config_id": "bc_2971e67efc86",
+        "entity_id": "entity_dfd2d4153e97",
+        "queryset_id": "qs_a5fa2589ba62",
+        "queryset_version": "rule_matrix_v1",
+        "inspection_batch_id": "batch_68862dda6e49",
+        "inspection_started_at": "2026-05-13T02:47:52.618594+00:00",
+        "inspection_completed_at": "2026-05-13T02:48:29.101082+00:00",
+        "aggregation_version": "report_aggregation_v2",
+        "queryset_strategy": "rule_matrix_v1",
+        "queryset_source": "matrix_api_v1",
+        "inspection_mode": "multi_platform_live_v1",
+        "platforms_requested": [
+          "豆包"
+        ],
+        "matrix_api_request_id": "mx_local_fade3f9a26f2"
+      },
+      "audit": {
+        "missing_fields": [],
+        "empty_sections": [
+          "sources",
+          "source_gap"
+        ],
+        "truncated": [],
+        "validation_errors": [],
+        "schema_version": "report_data_schema_v1",
+        "source": "api",
+        "raw_results_persisted": true,
+        "platforms_inspected": [
+          "豆包"
+        ],
+        "platforms_failed": [],
+        "inspection_failures_count": 0,
+        "expected_samples": 1,
+        "completed_samples": 1,
+        "missing_samples": 0
+      },
+      "executive_summary": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。",
+      "global": {
+        "natural_visibility": 1.0,
+        "rank": 1.0,
+        "visibility": 1.0,
+        "sentiment_score": 0.5,
+        "ai_recommend_score": 50.0,
+        "own_citations": 0,
+        "competitor_suppression_rate": 0.0,
+        "summary_text": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。"
+      },
+      "competitor_ranking": [
+        {
+          "name": "杭州兑吧网络科技有限公司",
+          "mention_rate": 1.0,
+          "is_self": true
+        },
+        {
+          "name": "有赞",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "微盟",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "星耀",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "灵智",
+          "mention_rate": 1.0,
+          "is_self": false
+        }
+      ],
+      "platforms": [
+        {
+          "name": "豆包",
+          "samples": 1,
+          "mention_rate": 1.0,
+          "visibility": 1.0,
+          "rank": 1.0,
+          "ai_recommend_score": 50.0,
+          "competitor_rank": 1
+        }
+      ],
+      "sources": [],
+      "source_gap": [],
+      "sentiment": {
+        "positive_rate": 0.0,
+        "neutral_rate": 1.0,
+        "negative_rate": 0.0
+      },
+      "topics": [
+        {
+          "name": "积分商城管理工具",
+          "positive": 0,
+          "neutral": 100,
+          "negative": 0,
+          "change": "flat"
+        }
+      ],
+      "optimization_recommendations": [
+        {
+          "priority": "P1",
+          "title": "增强自有信源",
+          "text": "将产品页、案例页、FAQ 和白皮书改造成更容易被 AI 摘取的事实型内容。"
+        }
+      ],
+      "retest_plan": {
+        "next_queryset_strategy": "rule_matrix_v1",
+        "next_inspection_mode": "multi_platform_live_v1",
+        "recommended_interval_days": 7
+      },
+      "brand_config": {
+        "brand_config_id": "bc_2971e67efc86",
+        "entity_id": "entity_dfd2d4153e97",
+        "entity_name": "杭州兑吧网络科技有限公司",
+        "entity_aliases": [
+          "兑吧",
+          "兑吧网络",
+          "Duiba"
+        ],
+        "industry_segments": [
+          "金融场景",
+          "互联网App运营",
+          "内容/媒体App"
+        ],
+        "topics": [
+          {
+            "topic_name": "积分商城管理工具",
+            "business_line": "积分商城",
+            "priority": 1
+          },
+          {
+            "topic_name": "会员权益运营平台",
+            "business_line": "会员权益",
+            "priority": 2
+          },
+          {
+            "topic_name": "互动广告接入",
+            "business_line": "互动广告",
+            "priority": 3
+          }
+        ],
+        "competitors": [
+          {
+            "name": "有赞",
+            "aliases": [
+              "Youzan"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "微盟",
+            "aliases": [
+              "Weimob"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "星耀",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          },
+          {
+            "name": "灵智",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          }
+        ],
+        "aliases_count": 3,
+        "topics_monitored": 3,
+        "competitors_count": 4,
+        "created_at": "2026-05-13T02:47:52.601032+00:00",
+        "updated_at": "2026-05-13T02:47:52.601032+00:00",
+        "queries": [
+          {
+            "query_id": "q_001",
+            "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+            "query_layer": "core_anchor",
+            "run_scope": "production",
+            "metric_scope": "core_trend",
+            "topic": "积分商城管理工具",
+            "query_pattern": "category_rec",
+            "intent_type": "vendor_recommendation",
+            "related_competitors": [
+              "有赞",
+              "微盟",
+              "星耀"
+            ]
+          }
+        ],
+        "queries_count": 1
+      },
+      "insights": [
+        {
+          "priority": "P1",
+          "text": "本次 AI 回答未产生可归因为品牌自有信源的引用，官网、案例页和 FAQ 的可引用性仍需提升。"
+        }
+      ]
+    },
+    "inspection_started_at": "2026-05-13T02:47:52.618594+00:00",
+    "queryset": {
+      "queryset_id": "qs_a5fa2589ba62",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_fade3f9a26f2",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "豆包"
+    ],
+    "inspection_completed_at": "2026-05-13T02:48:29.101082+00:00"
+  },
+  "run_220a0acf865b": {
+    "run_id": "run_220a0acf865b",
+    "brand_config_id": "bc_7f0524be667a",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "multi_platform_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": null,
+    "inspection_batch_id": "batch_1c85f3e388b7",
+    "status": "completed",
+    "progress": 100,
+    "message": "Diagnostic report completed",
+    "created_at": "2026-05-13T02:49:23.297792+00:00",
+    "updated_at": "2026-05-13T02:49:56.130220+00:00",
+    "report_data": {
+      "meta": {
+        "report_id": "report_28b38832c148",
+        "contract_version": "report_data_v1",
+        "template_version": "geo_report_generator_goose_yellow_20260509",
+        "brand_name": "杭州兑吧网络科技有限公司",
+        "brand_tagline": "积分商城管理工具 / 会员权益运营平台",
+        "report_date": "2026-05-13",
+        "generated_at": "2026-05-13T02:49:56.128553+00:00",
+        "total_queries": 1,
+        "total_competitors": 4
+      },
+      "lineage": {
+        "brand_config_id": "bc_7f0524be667a",
+        "entity_id": "entity_3721a40b744a",
+        "queryset_id": "qs_68e6a8a3b206",
+        "queryset_version": "rule_matrix_v1",
+        "inspection_batch_id": "batch_1c85f3e388b7",
+        "inspection_started_at": "2026-05-13T02:49:23.306351+00:00",
+        "inspection_completed_at": "2026-05-13T02:49:56.122796+00:00",
+        "aggregation_version": "report_aggregation_v2",
+        "queryset_strategy": "rule_matrix_v1",
+        "queryset_source": "matrix_api_v1",
+        "inspection_mode": "multi_platform_live_v1",
+        "platforms_requested": [
+          "豆包"
+        ],
+        "matrix_api_request_id": "mx_local_aca175a42b28"
+      },
+      "audit": {
+        "missing_fields": [],
+        "empty_sections": [
+          "sources",
+          "source_gap"
+        ],
+        "truncated": [],
+        "validation_errors": [],
+        "schema_version": "report_data_schema_v1",
+        "source": "api",
+        "raw_results_persisted": true,
+        "platforms_inspected": [
+          "豆包"
+        ],
+        "platforms_failed": [],
+        "inspection_failures_count": 0,
+        "expected_samples": 1,
+        "completed_samples": 1,
+        "missing_samples": 0
+      },
+      "executive_summary": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。",
+      "global": {
+        "natural_visibility": 1.0,
+        "rank": 1.0,
+        "visibility": 1.0,
+        "sentiment_score": 0.5,
+        "ai_recommend_score": 50.0,
+        "own_citations": 0,
+        "competitor_suppression_rate": 0.0,
+        "summary_text": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。"
+      },
+      "competitor_ranking": [
+        {
+          "name": "杭州兑吧网络科技有限公司",
+          "mention_rate": 1.0,
+          "is_self": true
+        },
+        {
+          "name": "有赞",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "微盟",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "星耀",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "灵智",
+          "mention_rate": 1.0,
+          "is_self": false
+        }
+      ],
+      "platforms": [
+        {
+          "name": "豆包",
+          "samples": 1,
+          "mention_rate": 1.0,
+          "visibility": 1.0,
+          "rank": 1.0,
+          "ai_recommend_score": 50.0,
+          "competitor_rank": 1
+        }
+      ],
+      "sources": [],
+      "source_gap": [],
+      "sentiment": {
+        "positive_rate": 0.0,
+        "neutral_rate": 1.0,
+        "negative_rate": 0.0
+      },
+      "topics": [
+        {
+          "name": "积分商城管理工具",
+          "positive": 0,
+          "neutral": 100,
+          "negative": 0,
+          "change": "flat"
+        }
+      ],
+      "optimization_recommendations": [
+        {
+          "priority": "P1",
+          "title": "增强自有信源",
+          "text": "将产品页、案例页、FAQ 和白皮书改造成更容易被 AI 摘取的事实型内容。"
+        }
+      ],
+      "retest_plan": {
+        "next_queryset_strategy": "rule_matrix_v1",
+        "next_inspection_mode": "multi_platform_live_v1",
+        "recommended_interval_days": 7
+      },
+      "brand_config": {
+        "brand_config_id": "bc_7f0524be667a",
+        "entity_id": "entity_3721a40b744a",
+        "entity_name": "杭州兑吧网络科技有限公司",
+        "entity_aliases": [
+          "兑吧",
+          "兑吧网络",
+          "Duiba"
+        ],
+        "industry_segments": [
+          "金融场景",
+          "互联网App运营",
+          "内容/媒体App"
+        ],
+        "topics": [
+          {
+            "topic_name": "积分商城管理工具",
+            "business_line": "积分商城",
+            "priority": 1
+          },
+          {
+            "topic_name": "会员权益运营平台",
+            "business_line": "会员权益",
+            "priority": 2
+          },
+          {
+            "topic_name": "互动广告接入",
+            "business_line": "互动广告",
+            "priority": 3
+          }
+        ],
+        "competitors": [
+          {
+            "name": "有赞",
+            "aliases": [
+              "Youzan"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "微盟",
+            "aliases": [
+              "Weimob"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "星耀",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          },
+          {
+            "name": "灵智",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          }
+        ],
+        "aliases_count": 3,
+        "topics_monitored": 3,
+        "competitors_count": 4,
+        "created_at": "2026-05-13T02:49:23.283986+00:00",
+        "updated_at": "2026-05-13T02:49:23.283986+00:00",
+        "queries": [
+          {
+            "query_id": "q_001",
+            "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+            "query_layer": "core_anchor",
+            "run_scope": "production",
+            "metric_scope": "core_trend",
+            "topic": "积分商城管理工具",
+            "query_pattern": "category_rec",
+            "intent_type": "vendor_recommendation",
+            "related_competitors": [
+              "有赞",
+              "微盟",
+              "星耀"
+            ]
+          }
+        ],
+        "queries_count": 1
+      },
+      "insights": [
+        {
+          "priority": "P1",
+          "text": "本次 AI 回答未产生可归因为品牌自有信源的引用，官网、案例页和 FAQ 的可引用性仍需提升。"
+        }
+      ]
+    },
+    "inspection_started_at": "2026-05-13T02:49:23.306351+00:00",
+    "queryset": {
+      "queryset_id": "qs_68e6a8a3b206",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_aca175a42b28",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "豆包"
+    ],
+    "inspection_completed_at": "2026-05-13T02:49:56.122796+00:00"
+  },
+  "run_5356bba21e5c": {
+    "run_id": "run_5356bba21e5c",
+    "brand_config_id": "bc_392610aca155",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "multi_platform_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": null,
+    "inspection_batch_id": "batch_155f56189001",
+    "status": "completed",
+    "progress": 100,
+    "message": "Diagnostic report completed",
+    "created_at": "2026-05-13T02:50:51.816340+00:00",
+    "updated_at": "2026-05-13T02:51:37.830171+00:00",
+    "report_data": {
+      "meta": {
+        "report_id": "report_33fabef9a70f",
+        "contract_version": "report_data_v1",
+        "template_version": "geo_report_generator_goose_yellow_20260509",
+        "brand_name": "杭州兑吧网络科技有限公司",
+        "brand_tagline": "积分商城管理工具 / 会员权益运营平台",
+        "report_date": "2026-05-13",
+        "generated_at": "2026-05-13T02:51:37.829142+00:00",
+        "total_queries": 1,
+        "total_competitors": 4
+      },
+      "lineage": {
+        "brand_config_id": "bc_392610aca155",
+        "entity_id": "entity_e91ab4a2d055",
+        "queryset_id": "qs_3c8812c23e99",
+        "queryset_version": "rule_matrix_v1",
+        "inspection_batch_id": "batch_155f56189001",
+        "inspection_started_at": "2026-05-13T02:50:51.821968+00:00",
+        "inspection_completed_at": "2026-05-13T02:51:37.823729+00:00",
+        "aggregation_version": "report_aggregation_v2",
+        "queryset_strategy": "rule_matrix_v1",
+        "queryset_source": "matrix_api_v1",
+        "inspection_mode": "multi_platform_live_v1",
+        "platforms_requested": [
+          "豆包"
+        ],
+        "matrix_api_request_id": "mx_local_bf370dac4660"
+      },
+      "audit": {
+        "missing_fields": [],
+        "empty_sections": [
+          "sources",
+          "source_gap"
+        ],
+        "truncated": [],
+        "validation_errors": [],
+        "schema_version": "report_data_schema_v1",
+        "source": "api",
+        "raw_results_persisted": true,
+        "platforms_inspected": [
+          "豆包"
+        ],
+        "platforms_failed": [],
+        "inspection_failures_count": 0,
+        "expected_samples": 1,
+        "completed_samples": 1,
+        "missing_samples": 0
+      },
+      "executive_summary": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。",
+      "global": {
+        "natural_visibility": 1.0,
+        "rank": 1.0,
+        "visibility": 1.0,
+        "sentiment_score": 0.5,
+        "ai_recommend_score": 50.0,
+        "own_citations": 0,
+        "competitor_suppression_rate": 0.0,
+        "summary_text": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。"
+      },
+      "competitor_ranking": [
+        {
+          "name": "杭州兑吧网络科技有限公司",
+          "mention_rate": 1.0,
+          "is_self": true
+        },
+        {
+          "name": "有赞",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "微盟",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "星耀",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "灵智",
+          "mention_rate": 1.0,
+          "is_self": false
+        }
+      ],
+      "platforms": [
+        {
+          "name": "豆包",
+          "samples": 1,
+          "mention_rate": 1.0,
+          "visibility": 1.0,
+          "rank": 1.0,
+          "ai_recommend_score": 50.0,
+          "competitor_rank": 1
+        }
+      ],
+      "sources": [],
+      "source_gap": [],
+      "sentiment": {
+        "positive_rate": 0.0,
+        "neutral_rate": 1.0,
+        "negative_rate": 0.0
+      },
+      "topics": [
+        {
+          "name": "积分商城管理工具",
+          "positive": 0,
+          "neutral": 100,
+          "negative": 0,
+          "change": "flat"
+        }
+      ],
+      "optimization_recommendations": [
+        {
+          "priority": "P1",
+          "title": "增强自有信源",
+          "text": "将产品页、案例页、FAQ 和白皮书改造成更容易被 AI 摘取的事实型内容。"
+        }
+      ],
+      "retest_plan": {
+        "next_queryset_strategy": "rule_matrix_v1",
+        "next_inspection_mode": "multi_platform_live_v1",
+        "recommended_interval_days": 7
+      },
+      "brand_config": {
+        "brand_config_id": "bc_392610aca155",
+        "entity_id": "entity_e91ab4a2d055",
+        "entity_name": "杭州兑吧网络科技有限公司",
+        "entity_aliases": [
+          "兑吧",
+          "兑吧网络",
+          "Duiba"
+        ],
+        "industry_segments": [
+          "金融场景",
+          "互联网App运营",
+          "内容/媒体App"
+        ],
+        "topics": [
+          {
+            "topic_name": "积分商城管理工具",
+            "business_line": "积分商城",
+            "priority": 1
+          },
+          {
+            "topic_name": "会员权益运营平台",
+            "business_line": "会员权益",
+            "priority": 2
+          },
+          {
+            "topic_name": "互动广告接入",
+            "business_line": "互动广告",
+            "priority": 3
+          }
+        ],
+        "competitors": [
+          {
+            "name": "有赞",
+            "aliases": [
+              "Youzan"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "微盟",
+            "aliases": [
+              "Weimob"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "星耀",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          },
+          {
+            "name": "灵智",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          }
+        ],
+        "aliases_count": 3,
+        "topics_monitored": 3,
+        "competitors_count": 4,
+        "created_at": "2026-05-13T02:50:51.793746+00:00",
+        "updated_at": "2026-05-13T02:50:51.793746+00:00",
+        "queries": [
+          {
+            "query_id": "q_001",
+            "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+            "query_layer": "core_anchor",
+            "run_scope": "production",
+            "metric_scope": "core_trend",
+            "topic": "积分商城管理工具",
+            "query_pattern": "category_rec",
+            "intent_type": "vendor_recommendation",
+            "related_competitors": [
+              "有赞",
+              "微盟",
+              "星耀"
+            ]
+          }
+        ],
+        "queries_count": 1
+      },
+      "insights": [
+        {
+          "priority": "P1",
+          "text": "本次 AI 回答未产生可归因为品牌自有信源的引用，官网、案例页和 FAQ 的可引用性仍需提升。"
+        }
+      ]
+    },
+    "inspection_started_at": "2026-05-13T02:50:51.821968+00:00",
+    "queryset": {
+      "queryset_id": "qs_3c8812c23e99",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_bf370dac4660",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "豆包"
+    ],
+    "inspection_completed_at": "2026-05-13T02:51:37.823729+00:00"
+  },
+  "run_f85c6d84f863": {
+    "run_id": "run_f85c6d84f863",
+    "brand_config_id": "bc_e03e63ce7577",
+    "queryset_strategy": "rule_matrix_v1",
+    "inspection_mode": "multi_platform_live_v1",
+    "queryset_source": "matrix_api_v1",
+    "platforms": null,
+    "inspection_batch_id": "batch_df61ef2bc105",
+    "status": "completed",
+    "progress": 100,
+    "message": "Diagnostic report completed",
+    "created_at": "2026-05-13T03:22:38.106118+00:00",
+    "updated_at": "2026-05-13T03:23:10.580124+00:00",
+    "report_data": {
+      "meta": {
+        "report_id": "report_ba1ee1f63928",
+        "contract_version": "report_data_v1",
+        "template_version": "geo_report_generator_goose_yellow_20260509",
+        "brand_name": "杭州兑吧网络科技有限公司",
+        "brand_tagline": "积分商城管理工具 / 会员权益运营平台",
+        "report_date": "2026-05-13",
+        "generated_at": "2026-05-13T03:23:10.579057+00:00",
+        "total_queries": 1,
+        "total_competitors": 4
+      },
+      "lineage": {
+        "brand_config_id": "bc_e03e63ce7577",
+        "entity_id": "entity_2b83cbac6925",
+        "queryset_id": "qs_d7ed219e0fe0",
+        "queryset_version": "rule_matrix_v1",
+        "inspection_batch_id": "batch_df61ef2bc105",
+        "inspection_started_at": "2026-05-13T03:22:38.113753+00:00",
+        "inspection_completed_at": "2026-05-13T03:23:10.572943+00:00",
+        "aggregation_version": "report_aggregation_v2",
+        "queryset_strategy": "rule_matrix_v1",
+        "queryset_source": "matrix_api_v1",
+        "inspection_mode": "multi_platform_live_v1",
+        "platforms_requested": [
+          "豆包"
+        ],
+        "matrix_api_request_id": "mx_local_7303908cda5e"
+      },
+      "audit": {
+        "missing_fields": [],
+        "empty_sections": [
+          "sources",
+          "source_gap"
+        ],
+        "truncated": [],
+        "validation_errors": [],
+        "schema_version": "report_data_schema_v1",
+        "source": "api",
+        "raw_results_persisted": true,
+        "platforms_inspected": [
+          "豆包"
+        ],
+        "platforms_failed": [],
+        "inspection_failures_count": 0,
+        "expected_samples": 1,
+        "completed_samples": 1,
+        "missing_samples": 0
+      },
+      "executive_summary": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。",
+      "global": {
+        "natural_visibility": 1.0,
+        "rank": 1.0,
+        "visibility": 1.0,
+        "sentiment_score": 0.5,
+        "ai_recommend_score": 50.0,
+        "own_citations": 0,
+        "competitor_suppression_rate": 0.0,
+        "summary_text": "本次基于多平台真实 AI 回答完成 1 条查询巡检，杭州兑吧网络科技有限公司 自然可见度为 100.0%，平均位次 1.0，AI 推荐度为 50.0。"
+      },
+      "competitor_ranking": [
+        {
+          "name": "杭州兑吧网络科技有限公司",
+          "mention_rate": 1.0,
+          "is_self": true
+        },
+        {
+          "name": "有赞",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "微盟",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "星耀",
+          "mention_rate": 1.0,
+          "is_self": false
+        },
+        {
+          "name": "灵智",
+          "mention_rate": 1.0,
+          "is_self": false
+        }
+      ],
+      "platforms": [
+        {
+          "name": "豆包",
+          "samples": 1,
+          "mention_rate": 1.0,
+          "visibility": 1.0,
+          "rank": 1.0,
+          "ai_recommend_score": 50.0,
+          "competitor_rank": 1
+        }
+      ],
+      "sources": [],
+      "source_gap": [],
+      "sentiment": {
+        "positive_rate": 0.0,
+        "neutral_rate": 1.0,
+        "negative_rate": 0.0
+      },
+      "topics": [
+        {
+          "name": "积分商城管理工具",
+          "positive": 0,
+          "neutral": 100,
+          "negative": 0,
+          "change": "flat"
+        }
+      ],
+      "optimization_recommendations": [
+        {
+          "priority": "P1",
+          "title": "增强自有信源",
+          "text": "将产品页、案例页、FAQ 和白皮书改造成更容易被 AI 摘取的事实型内容。"
+        }
+      ],
+      "retest_plan": {
+        "next_queryset_strategy": "rule_matrix_v1",
+        "next_inspection_mode": "multi_platform_live_v1",
+        "recommended_interval_days": 7
+      },
+      "brand_config": {
+        "brand_config_id": "bc_e03e63ce7577",
+        "entity_id": "entity_2b83cbac6925",
+        "entity_name": "杭州兑吧网络科技有限公司",
+        "entity_aliases": [
+          "兑吧",
+          "兑吧网络",
+          "Duiba"
+        ],
+        "industry_segments": [
+          "金融场景",
+          "互联网App运营",
+          "内容/媒体App"
+        ],
+        "topics": [
+          {
+            "topic_name": "积分商城管理工具",
+            "business_line": "积分商城",
+            "priority": 1
+          },
+          {
+            "topic_name": "会员权益运营平台",
+            "business_line": "会员权益",
+            "priority": 2
+          },
+          {
+            "topic_name": "互动广告接入",
+            "business_line": "互动广告",
+            "priority": 3
+          }
+        ],
+        "competitors": [
+          {
+            "name": "有赞",
+            "aliases": [
+              "Youzan"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "微盟",
+            "aliases": [
+              "Weimob"
+            ],
+            "business_line": "会员权益",
+            "category": "泛电商 SaaS"
+          },
+          {
+            "name": "星耀",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          },
+          {
+            "name": "灵智",
+            "aliases": [],
+            "business_line": "积分商城",
+            "category": "金融积分运营"
+          }
+        ],
+        "aliases_count": 3,
+        "topics_monitored": 3,
+        "competitors_count": 4,
+        "created_at": "2026-05-13T03:22:38.084175+00:00",
+        "updated_at": "2026-05-13T03:22:38.084175+00:00",
+        "queries": [
+          {
+            "query_id": "q_001",
+            "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+            "query_layer": "core_anchor",
+            "run_scope": "production",
+            "metric_scope": "core_trend",
+            "topic": "积分商城管理工具",
+            "query_pattern": "category_rec",
+            "intent_type": "vendor_recommendation",
+            "related_competitors": [
+              "有赞",
+              "微盟",
+              "星耀"
+            ]
+          }
+        ],
+        "queries_count": 1
+      },
+      "insights": [
+        {
+          "priority": "P1",
+          "text": "本次 AI 回答未产生可归因为品牌自有信源的引用，官网、案例页和 FAQ 的可引用性仍需提升。"
+        }
+      ]
+    },
+    "inspection_started_at": "2026-05-13T03:22:38.113753+00:00",
+    "queryset": {
+      "queryset_id": "qs_d7ed219e0fe0",
+      "queryset_version": "rule_matrix_v1",
+      "matrix_api_request_id": "mx_local_7303908cda5e",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "metric_scope": "core_trend",
+          "topic": "积分商城管理工具",
+          "query_pattern": "category_rec",
+          "intent_type": "vendor_recommendation",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ]
+        }
+      ]
+    },
+    "platforms_requested": [
+      "豆包"
+    ],
+    "inspection_completed_at": "2026-05-13T03:23:10.572943+00:00"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://geo.local/schemas/rule_activation_evaluation.schema.json",
+  "title": "RuleActivationEvaluation",
+  "type": "object",
+  "required": ["decision", "confidence", "activation_scope", "reason", "risk_check", "recommended_next_action"],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": [
+        "activate_global",
+        "activate_platform_specific",
+        "activate_task_specific",
+        "merge_into_baseline",
+        "keep_baseline",
+        "reject_rule_set"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "activation_scope": {
+      "type": "object",
+      "required": ["platforms", "query_patterns", "action_types"],
+      "properties": {
+        "platforms": { "type": "array", "items": { "type": "string" } },
+        "query_patterns": { "type": "array", "items": { "type": "string" } },
+        "action_types": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "reason": { "type": "string" },
+    "metric_comparison": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric": { "type": "string" },
+          "baseline_rule": { "type": ["number", "string", "null"] },
+          "auto_generated_rule_set": { "type": ["number", "string", "null"] },
+          "delta": { "type": ["number", "string", "null"] },
+          "decision_impact": { "type": "string" }
+        }
+      }
+    },
+    "risk_check": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["risk_item", "status", "explanation"],
+        "properties": {
+          "risk_item": { "type": "string" },
+          "status": { "type": "string", "enum": ["pass", "fail", "unknown"] },
+          "explanation": { "type": "string" }
+        }
+      }
+    },
+    "rules_to_keep": { "type": "array", "items": { "type": "string" } },
+    "rules_to_merge_into_baseline": { "type": "array", "items": { "type": "string" } },
+    "rules_to_reject": { "type": "array", "items": { "type": "string" } },
+    "recommended_next_action": { "type": "array", "items": { "type": "string" } }
+  }
+}

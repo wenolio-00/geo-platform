@@ -1,0 +1,333 @@
+{
+  "meta": {
+    "report_id": "uploaded_demo_20260509",
+    "contract_version": "report_data_v1",
+    "template_version": "geo_report_generator_goose_yellow_20260509",
+    "generated_at": "2026-05-09T14:16:00+08:00",
+    "brand_name": "兑吧",
+    "brand_tagline": "积分商城 / 会员权益 SaaS",
+    "report_date": "2026.05.07",
+    "total_queries": 23,
+    "total_competitors": 4
+  },
+  "global": {
+    "natural_visibility": 0.681,
+    "rank": 1.37,
+    "sentiment_score": 0.7,
+    "ai_recommend_score": 70,
+    "own_citations": 35
+  },
+  "competitor_ranking": [
+    {
+      "name": "兑吧",
+      "mention_rate": 0.681,
+      "is_self": true
+    },
+    {
+      "name": "灵智",
+      "mention_rate": 0.304,
+      "is_self": false
+    },
+    {
+      "name": "有赞",
+      "mention_rate": 0.297,
+      "is_self": false
+    },
+    {
+      "name": "星耀",
+      "mention_rate": 0.297,
+      "is_self": false
+    },
+    {
+      "name": "微盟",
+      "mention_rate": 0.261,
+      "is_self": false
+    }
+  ],
+  "platforms": [
+    {
+      "name": "元宝",
+      "samples": 23,
+      "mention_rate": 0.87,
+      "ai_recommend_score": 81,
+      "own_citations": 10,
+      "competitor_rank": 1
+    },
+    {
+      "name": "Kimi",
+      "samples": 23,
+      "mention_rate": 0.783,
+      "ai_recommend_score": 78,
+      "own_citations": 7,
+      "competitor_rank": 1
+    },
+    {
+      "name": "通义千问",
+      "samples": 23,
+      "mention_rate": 0.739,
+      "ai_recommend_score": 69,
+      "own_citations": 6,
+      "competitor_rank": 1
+    },
+    {
+      "name": "DeepSeek",
+      "samples": 23,
+      "mention_rate": 0.652,
+      "ai_recommend_score": 66,
+      "own_citations": 5,
+      "competitor_rank": 1
+    },
+    {
+      "name": "豆包",
+      "samples": 23,
+      "mention_rate": 0.652,
+      "ai_recommend_score": 70,
+      "own_citations": 7,
+      "competitor_rank": 1
+    },
+    {
+      "name": "文心一言",
+      "samples": 23,
+      "mention_rate": 0.391,
+      "ai_recommend_score": 56,
+      "own_citations": 0,
+      "competitor_rank": 1
+    }
+  ],
+  "sources": [
+    {
+      "domain": "duiba.com.cn",
+      "type": "自有",
+      "count": 35
+    },
+    {
+      "domain": "baijiahao.baidu.com",
+      "type": "第三方社媒",
+      "count": 35
+    },
+    {
+      "domain": "zhihu.com",
+      "type": "UGC",
+      "count": 31
+    },
+    {
+      "domain": "mp.weixin.qq.com",
+      "type": "UGC",
+      "count": 24
+    },
+    {
+      "domain": "36kr.com",
+      "type": "第三方社媒",
+      "count": 22
+    },
+    {
+      "domain": "csdn.net",
+      "type": "UGC",
+      "count": 20
+    },
+    {
+      "domain": "jianshu.com",
+      "type": "UGC",
+      "count": 8
+    },
+    {
+      "domain": "tieba.baidu.com",
+      "type": "UGC",
+      "count": 7
+    }
+  ],
+  "source_gap": [
+    {
+      "domain": "csdn.net",
+      "brand": 9,
+      "competitor": 18
+    },
+    {
+      "domain": "baijiahao.baidu.com",
+      "brand": 23,
+      "competitor": 27
+    },
+    {
+      "domain": "36kr.com",
+      "brand": 18,
+      "competitor": 14
+    },
+    {
+      "domain": "tieba.baidu.com",
+      "brand": 2,
+      "competitor": 6
+    },
+    {
+      "domain": "zhihu.com",
+      "brand": 24,
+      "competitor": 22
+    },
+    {
+      "domain": "mp.weixin.qq.com",
+      "brand": 20,
+      "competitor": 18
+    },
+    {
+      "domain": "duiba.com.cn",
+      "brand": 25,
+      "competitor": 26
+    },
+    {
+      "domain": "163.com",
+      "brand": 4,
+      "competitor": 5
+    }
+  ],
+  "sentiment": {
+    "positive_rate": 0.48,
+    "neutral_rate": 0.41,
+    "negative_rate": 0.11
+  },
+  "topics": [
+    {
+      "name": "定价对比",
+      "positive": 67,
+      "neutral": 33,
+      "negative": 0,
+      "verdict": "up"
+    },
+    {
+      "name": "银行App留存",
+      "positive": 80,
+      "neutral": 20,
+      "negative": 0,
+      "verdict": "up"
+    },
+    {
+      "name": "积分策略",
+      "positive": 40,
+      "neutral": 60,
+      "negative": 0,
+      "verdict": "up"
+    },
+    {
+      "name": "商品运营",
+      "positive": 20,
+      "neutral": 20,
+      "negative": 60,
+      "verdict": "down"
+    },
+    {
+      "name": "数据集成",
+      "positive": 60,
+      "neutral": 40,
+      "negative": 0,
+      "verdict": "up"
+    },
+    {
+      "name": "约束式选型",
+      "positive": 40,
+      "neutral": 60,
+      "negative": 0,
+      "verdict": "up"
+    },
+    {
+      "name": "竞品对比",
+      "positive": 40,
+      "neutral": 60,
+      "negative": 0,
+      "verdict": "up"
+    },
+    {
+      "name": "迁移决策",
+      "positive": 0,
+      "neutral": 100,
+      "negative": 0,
+      "verdict": "flat"
+    }
+  ],
+  "brand_config": {
+    "entity_name": "杭州兑吧网络科技有限公司",
+    "entity_aliases": ["兑吧", "兑吧网络", "Duiba"],
+    "industry_segments": ["金融场景", "互联网App运营", "内容/媒体App"],
+    "topics": [
+      {
+        "topic_name": "积分商城管理工具",
+        "business_line": "积分商城",
+        "priority": 1
+      },
+      {
+        "topic_name": "会员权益运营平台",
+        "business_line": "会员权益",
+        "priority": 2
+      },
+      {
+        "topic_name": "互动广告接入",
+        "business_line": "互动广告",
+        "priority": 3
+      }
+    ],
+    "competitors": [
+      {
+        "name": "有赞",
+        "aliases": ["Youzan"],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "微盟",
+        "aliases": ["Weimob"],
+        "business_line": "会员权益",
+        "category": "泛电商 SaaS"
+      },
+      {
+        "name": "星耀",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      },
+      {
+        "name": "灵智",
+        "aliases": [],
+        "business_line": "积分商城",
+        "category": "金融积分运营"
+      }
+    ],
+    "queries_count": 216
+  },
+  "insights": [
+    {
+      "priority": "P0",
+      "text": "AI 推荐度 70，距离行业推荐线（90+）仍有提升空间。当前 AI 对 兑吧 的提及中，仍有较多列举式内容，需要补充更明确的推荐理由和可验证证据。"
+    },
+    {
+      "priority": "P0",
+      "text": "品牌自有引用共 35 次。后续可继续扩大官网、白皮书和案例页的结构化内容覆盖。"
+    },
+    {
+      "priority": "P1",
+      "text": "整体提及率 68.1%。当用户没有主动指定品牌时，AI 是否自然提及品牌，直接决定品牌在 AI 搜索中的存在感。"
+    },
+    {
+      "priority": "P1",
+      "text": "文心一言 是当前优先补强平台。建议结合该平台引用偏好，发布更容易被抓取和引用的结构化内容。"
+    },
+    {
+      "priority": "优势",
+      "text": "定价对比 是当前可优先放大的话题。可将已有优势内容沉淀为对比页、案例页和 FAQ 页，进一步提升决策阶段表现。"
+    }
+  ],
+  "lineage": {
+    "brand_config_id": "uploaded_demo_brand_config",
+    "entity_id": "uploaded_demo_entity",
+    "queryset_id": "uploaded_demo_queryset",
+    "queryset_version": "uploaded_demo_v1",
+    "inspection_batch_id": "uploaded_demo_batch",
+    "inspection_started_at": "2026-05-09T12:48:00+08:00",
+    "inspection_completed_at": "2026-05-09T13:05:00+08:00",
+    "aggregation_version": "uploaded_demo_aggregation_v1"
+  },
+  "audit": {
+    "missing_fields": [],
+    "empty_sections": [],
+    "truncated": [],
+    "validation_errors": [],
+    "schema_version": "report_data_schema_v1",
+    "source": "uploaded"
+  }
+}

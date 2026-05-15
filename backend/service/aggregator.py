@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -23,12 +24,19 @@ def aggregate_report(
     platforms_inspected = list(dict.fromkeys(r["platform"] for r in completed_results))
     platforms_failed = list(dict.fromkeys(r["platform"] for r in failed_results))
     expected_samples = total + len(failed_results)
+    brand_config_snapshot = copy.deepcopy(brand_config)
+    query_by_id = {
+        query.get("query_id"): query
+        for query in queryset.get("queries", [])
+        if isinstance(query, dict) and query.get("query_id")
+    }
 
     competitor_names = [item["name"] for item in brand_config.get("competitors", []) if item.get("name")]
     brands = [brand_config["entity_name"], *competitor_names]
-    brand_stats = {name: {"mentions": 0, "positions": []} for name in brands}
+    brand_stats = {name: {"mentions": 0.0, "position_weighted_sum": 0.0, "position_weight": 0.0} for name in brands}
     platform_brand_stats: dict[str, dict[str, dict]] = {}
     platform_sample_counts = Counter()
+    platform_weight_totals = Counter()
     platform_sentiments = defaultdict(Counter)
     self_sentiments = Counter()
     business_line_lookup = _business_line_lookup(brand_config)
@@ -38,42 +46,61 @@ def aggregate_report(
         topic_sentiments[business_line] = Counter()
     source_counts = Counter()
     official_source_counts = Counter()
-    competitor_only = 0
+    competitor_only = 0.0
+    core_completed_samples = 0
+    metric_weighted_denominator = 0.0
 
     for result in completed_results:
         platform = result.get("platform", "unknown")
         platform_sample_counts[platform] += 1
         if platform not in platform_brand_stats:
-            platform_brand_stats[platform] = {name: {"mentions": 0, "positions": []} for name in brands}
+            platform_brand_stats[platform] = {
+                name: {"mentions": 0.0, "position_weighted_sum": 0.0, "position_weight": 0.0}
+                for name in brands
+            }
         mentions = result.get("parsed", {}).get("mentioned_brands", [])
         mentioned_self = False
         mentioned_competitor = False
         seen_in_sample = set()
+        query_meta = _query_meta(result, query_by_id)
+        is_core = query_meta.get("metric_scope") == "core_trend" and query_meta.get("run_scope") != "shadow"
+        sample_weight = _sample_weight(query_meta)
+        if is_core:
+            core_completed_samples += 1
+            metric_weighted_denominator += sample_weight
+            platform_weight_totals[platform] += sample_weight
 
         for mention in mentions:
             matched = _canonical_brand(mention.get("name"), brand_config, competitor_names)
             if not matched or matched in seen_in_sample:
                 continue
             seen_in_sample.add(matched)
-            brand_stats.setdefault(matched, {"mentions": 0, "positions": []})
-            brand_stats[matched]["mentions"] += 1
-            platform_brand_stats[platform].setdefault(matched, {"mentions": 0, "positions": []})
-            platform_brand_stats[platform][matched]["mentions"] += 1
-            if mention.get("position"):
-                brand_stats[matched]["positions"].append(mention["position"])
-                platform_brand_stats[platform][matched]["positions"].append(mention["position"])
+            if is_core:
+                brand_stats.setdefault(matched, {"mentions": 0.0, "position_weighted_sum": 0.0, "position_weight": 0.0})
+                brand_stats[matched]["mentions"] += sample_weight
+                platform_brand_stats[platform].setdefault(
+                    matched,
+                    {"mentions": 0.0, "position_weighted_sum": 0.0, "position_weight": 0.0},
+                )
+                platform_brand_stats[platform][matched]["mentions"] += sample_weight
+                if mention.get("position"):
+                    brand_stats[matched]["position_weighted_sum"] += mention["position"] * sample_weight
+                    brand_stats[matched]["position_weight"] += sample_weight
+                    platform_brand_stats[platform][matched]["position_weighted_sum"] += mention["position"] * sample_weight
+                    platform_brand_stats[platform][matched]["position_weight"] += sample_weight
             if matched == brand_config["entity_name"]:
                 mentioned_self = True
-                self_sentiments[mention.get("sentiment") or "neutral"] += 1
-                platform_sentiments[platform][mention.get("sentiment") or "neutral"] += 1
+                if is_core:
+                    self_sentiments[mention.get("sentiment") or "neutral"] += sample_weight
+                    platform_sentiments[platform][mention.get("sentiment") or "neutral"] += sample_weight
                 business_line = _business_line_for_result(result.get("topic"), business_line_lookup)
                 if business_line:
                     topic_sentiments[business_line][mention.get("sentiment") or "neutral"] += 1
             elif matched in competitor_names:
                 mentioned_competitor = True
 
-        if not mentioned_self and mentioned_competitor:
-            competitor_only += 1
+        if is_core and not mentioned_self and mentioned_competitor:
+            competitor_only += sample_weight
 
         for citation in result.get("parsed", {}).get("citations", []):
             domain = citation.get("domain")
@@ -87,14 +114,20 @@ def aggregate_report(
         if business_line:
             topic_sentiments.setdefault(business_line, Counter())
 
-    self_stats = brand_stats.get(brand_config["entity_name"], {"mentions": 0, "positions": []})
-    natural_visibility = _round(self_stats["mentions"] / total) if total else 0
-    avg_rank = _round(sum(self_stats["positions"]) / len(self_stats["positions"]), 2) if self_stats["positions"] else None
+    self_stats = brand_stats.get(brand_config["entity_name"], {"mentions": 0.0, "position_weighted_sum": 0.0, "position_weight": 0.0})
+    natural_visibility = _round(self_stats["mentions"] / metric_weighted_denominator) if metric_weighted_denominator else 0
+    avg_rank = _weighted_rank(self_stats)
     visibility = _round(natural_visibility / avg_rank) if avg_rank else 0
     sentiment_score = _sentiment_score(self_sentiments)
     ai_recommend_score = _round(visibility * sentiment_score * 100, 2)
     own_citations = sum(official_source_counts.values())
-    platforms_rows = _build_platforms(platform_brand_stats, platform_sample_counts, platform_sentiments, brand_config["entity_name"])
+    platforms_rows = _build_platforms(
+        platform_brand_stats,
+        platform_sample_counts,
+        platform_weight_totals,
+        platform_sentiments,
+        brand_config["entity_name"],
+    )
 
     report = {
         "meta": {
@@ -110,6 +143,7 @@ def aggregate_report(
         },
         "lineage": {
             "brand_config_id": brand_config["brand_config_id"],
+            "brand_config_snapshot": brand_config_snapshot,
             "entity_id": brand_config["entity_id"],
             "queryset_id": queryset["queryset_id"],
             "queryset_version": queryset["queryset_version"],
@@ -122,6 +156,7 @@ def aggregate_report(
             "inspection_mode": run["inspection_mode"],
             "platforms_requested": platforms_requested,
             "matrix_api_request_id": queryset.get("matrix_api_request_id"),
+            "query_quality_report": queryset.get("quality_report"),
         },
         "audit": {
             "missing_fields": [],
@@ -136,6 +171,8 @@ def aggregate_report(
             "inspection_failures_count": len(failed_results),
             "expected_samples": expected_samples,
             "completed_samples": total,
+            "core_completed_samples": core_completed_samples,
+            "metric_weighted_denominator": _round(metric_weighted_denominator),
             "missing_samples": expected_samples - total,
         },
         "executive_summary": _summary(brand_config["entity_name"], natural_visibility, avg_rank, ai_recommend_score, total),
@@ -146,10 +183,10 @@ def aggregate_report(
             "sentiment_score": sentiment_score,
             "ai_recommend_score": ai_recommend_score,
             "own_citations": own_citations,
-            "competitor_suppression_rate": _round(competitor_only / total) if total else 0,
+            "competitor_suppression_rate": _round(competitor_only / metric_weighted_denominator) if metric_weighted_denominator else 0,
             "summary_text": _summary(brand_config["entity_name"], natural_visibility, avg_rank, ai_recommend_score, total),
         },
-        "competitor_ranking": _competitor_ranking(brand_stats, total),
+        "competitor_ranking": _competitor_ranking(brand_stats, metric_weighted_denominator),
         "platforms": platforms_rows,
         "sources": [
             {
@@ -183,23 +220,29 @@ def aggregate_report(
     return report
 
 
-def _build_platforms(platform_brand_stats: dict, platform_sample_counts: Counter, platform_sentiments: dict, self_name: str) -> list[dict]:
+def _build_platforms(
+    platform_brand_stats: dict,
+    platform_sample_counts: Counter,
+    platform_weight_totals: Counter,
+    platform_sentiments: dict,
+    self_name: str,
+) -> list[dict]:
     rows = []
     for platform, stats in platform_brand_stats.items():
-        p_stats = stats.get(self_name, {"mentions": 0, "positions": []})
-        p_total = platform_sample_counts[platform]
-        mention_rate = _round(p_stats["mentions"] / p_total) if p_total else 0
-        avg_pos = _round(sum(p_stats["positions"]) / len(p_stats["positions"]), 2) if p_stats["positions"] else None
+        p_stats = stats.get(self_name, {"mentions": 0.0, "position_weighted_sum": 0.0, "position_weight": 0.0})
+        p_total_weight = platform_weight_totals[platform]
+        mention_rate = _round(p_stats["mentions"] / p_total_weight) if p_total_weight else 0
+        avg_pos = _weighted_rank(p_stats)
         vis = _round(mention_rate / avg_pos) if avg_pos else 0
         rows.append(
             {
                 "name": platform,
-                "samples": p_total,
+                "samples": platform_sample_counts[platform],
                 "mention_rate": mention_rate,
                 "visibility": vis,
                 "rank": avg_pos,
                 "ai_recommend_score": _round(vis * _sentiment_score(platform_sentiments[platform]) * 100, 2),
-                "competitor_rank": _self_rank(stats, p_total, self_name),
+                "competitor_rank": _self_rank(stats, p_total_weight, self_name),
             }
         )
     return rows
@@ -229,6 +272,13 @@ def _round(value: float, decimals: int = 4) -> float:
     return round(float(value), decimals)
 
 
+def _weighted_rank(stats: dict) -> float | None:
+    position_weight = stats.get("position_weight") or 0
+    if position_weight <= 0:
+        return None
+    return _round(stats.get("position_weighted_sum", 0) / position_weight, 2)
+
+
 def _sentiment_score(counter: Counter) -> float:
     total = sum(counter.values())
     if total <= 0:
@@ -247,7 +297,7 @@ def _sentiment_rates(counter: Counter) -> dict:
     }
 
 
-def _competitor_ranking(stats: dict, total: int) -> list[dict]:
+def _competitor_ranking(stats: dict, total: float) -> list[dict]:
     rows = []
     for name, values in stats.items():
         rows.append({"name": name, "mention_rate": _round(values["mentions"] / total) if total else 0, "is_self": False})
@@ -256,12 +306,30 @@ def _competitor_ranking(stats: dict, total: int) -> list[dict]:
     return rows
 
 
-def _self_rank(stats: dict, total: int, self_name: str) -> int | None:
+def _self_rank(stats: dict, total: float, self_name: str) -> int | None:
     ranking = sorted(_competitor_ranking(stats, total), key=lambda row: row["mention_rate"], reverse=True)
     for index, row in enumerate(ranking, start=1):
         if row["name"] == self_name:
             return index
     return None
+
+
+def _query_meta(result: dict, query_by_id: dict) -> dict:
+    query = query_by_id.get(result.get("query_id")) or {}
+    return {
+        **query,
+        "metric_scope": result.get("metric_scope") or query.get("metric_scope"),
+        "metric_weight": result.get("metric_weight", query.get("metric_weight")),
+        "run_scope": result.get("run_scope") or query.get("run_scope"),
+    }
+
+
+def _sample_weight(query_meta: dict) -> float:
+    try:
+        weight = float(query_meta.get("metric_weight") or 0)
+    except (TypeError, ValueError):
+        weight = 0.0
+    return weight if weight > 0 else 1.0
 
 
 def _topic_rows(topic_sentiments: dict) -> list[dict]:

@@ -213,6 +213,8 @@ Response body should include `queryset`, `metrics`, `attribution`, and
 
 ## Rule Matrix QuerySet
 
+The QuerySet backend flow, schema order, immutable snapshot rules, inspection lineage, report lineage, and quality gate are defined in `docs/QUERYSET_MATRIX_SPEC.md`.
+
 The backend generates query objects from `entity_name`, aliases,
 `industry_segments`, `topics`, and `competitors`.
 
@@ -224,9 +226,13 @@ Each query object should include:
   "query_text": "银行积分商城系统有哪些成熟供应商？",
   "query_layer": "core_anchor",
   "run_scope": "production",
+  "journey_stage": "problem_discovery",
   "metric_scope": "core_trend",
+  "metric_weight": 0.25,
   "topic": "积分商城",
   "intent_type": "vendor_recommendation",
+  "query_pattern": "category_rec",
+  "matrix_cell_id": "problem_discovery:category_rec",
   "related_competitors": ["有赞", "微盟"]
 }
 ```
@@ -240,6 +246,11 @@ Layer policy:
 - `core_anchor`: stable trend and default attribution.
 - `adaptive`: new-business coverage analysis.
 - `experimental`: shadow-only exploration.
+
+Main Answer Share / GVI aggregation consumes only `metric_scope =
+core_trend` samples and uses `metric_weight` as the sample weight.
+`supporting_trend` and `exploratory_coverage` remain available for report
+explanation but do not directly change the main trend metric.
 
 ## DeepSeek Live Inspection
 

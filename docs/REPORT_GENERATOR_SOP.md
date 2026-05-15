@@ -21,6 +21,8 @@
 
 当前报告输入只来自后端返回的 `report_data_v1`。不允许诊断报告页读取 fixture 或 mock report data。QuerySet 只来自矩阵模块 API；多平台巡检允许部分成功，成功样本参与聚合，失败平台和缺失样本必须写入 `audit`。
 
+QuerySet 后端流程、Pydantic schema 顺序、immutable snapshot、inspection lineage、report lineage 和 quality gate 统一见 `docs/QUERYSET_MATRIX_SPEC.md`。
+
 - API 数据集中在 `src/api/geo.js`
 - 页面只消费 API 层函数
 - 报告生成只调用 `src/lib/reportGenerator.js`

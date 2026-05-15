@@ -5,17 +5,15 @@ from uuid import uuid4
 
 import httpx
 
+from service.queryset_policy import (
+    QUERY_LAYERS,
+    RUN_SCOPES,
+    matrix_cell_id,
+    normalize_pattern,
+    normalize_stage,
+    policy_for,
+)
 from service.rule_matrix import generate_rule_matrix_queryset
-
-QUERY_PATTERNS = {
-    "scenario_explore",
-    "category_rec",
-    "competitive_comp",
-    "deep_background",
-    "decision_confirm",
-}
-QUERY_LAYERS = {"core_anchor", "adaptive", "experimental"}
-RUN_SCOPES = {"production", "bridge", "shadow"}
 
 
 class QuerySetMatrixClient:
@@ -78,15 +76,17 @@ def _normalize_query(item: object, index: int) -> dict:
     if not isinstance(query_text, str) or not query_text.strip():
         raise RuntimeError(f"Matrix QuerySet item #{index} is missing query_text.")
 
-    query_layer = item.get("query_layer") or item.get("layer") or "core_anchor"
+    query_pattern = normalize_pattern(item)
+    stage = normalize_stage(item.get("journey_stage"), query_pattern)
+    cell_id = str(item.get("matrix_cell_id") or item.get("cell_id") or matrix_cell_id(stage, query_pattern))
+    policy = policy_for(stage, query_pattern)
+
+    query_layer = item.get("query_layer") or item.get("layer") or policy["query_layer"]
     if query_layer not in QUERY_LAYERS:
-        query_layer = "core_anchor"
-    run_scope = item.get("run_scope") or "production"
+        query_layer = policy["query_layer"]
+    run_scope = item.get("run_scope") or policy["run_scope"]
     if run_scope not in RUN_SCOPES:
-        run_scope = "production"
-    query_pattern = item.get("query_pattern") or item.get("scenario") or item.get("scenario_key")
-    if query_pattern not in QUERY_PATTERNS:
-        query_pattern = _pattern_from_intent(item.get("intent_type"))
+        run_scope = policy["run_scope"]
 
     competitors = item.get("related_competitors") or item.get("competitors") or []
     if not isinstance(competitors, list):
@@ -97,25 +97,18 @@ def _normalize_query(item: object, index: int) -> dict:
         "query_text": query_text.strip(),
         "query_layer": query_layer,
         "run_scope": run_scope,
-        "metric_scope": str(item.get("metric_scope") or "core_trend"),
+        "journey_stage": stage,
+        "metric_scope": str(item.get("metric_scope") or policy["metric_scope"]),
         "topic": str(item.get("business_line") or item.get("topic") or item.get("topic_name") or "品牌核心业务"),
         "intent_type": str(item.get("intent_type") or query_pattern),
         "query_pattern": query_pattern,
         "related_competitors": [str(value).strip() for value in competitors if str(value).strip()],
-        "matrix_cell_id": item.get("matrix_cell_id") or item.get("cell_id"),
+        "matrix_cell_id": cell_id,
         "prompt_template_id": item.get("prompt_template_id") or item.get("template_id"),
         "lifecycle_status": item.get("lifecycle_status") or "active",
+        "source_dimension_json": {
+            **(item.get("source_dimension_json") if isinstance(item.get("source_dimension_json"), dict) else {}),
+            "journey_stage": stage,
+            "matrix_cell_id": cell_id,
+        },
     }
-
-
-def _pattern_from_intent(intent_type: object) -> str:
-    intent = str(intent_type or "").lower()
-    if "compet" in intent or "comparison" in intent:
-        return "competitive_comp"
-    if "deep" in intent or "background" in intent:
-        return "deep_background"
-    if "criteria" in intent or "decision" in intent:
-        return "decision_confirm"
-    if "vendor" in intent or "category" in intent or "recommend" in intent:
-        return "category_rec"
-    return "scenario_explore"

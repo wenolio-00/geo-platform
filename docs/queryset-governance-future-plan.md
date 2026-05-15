@@ -72,6 +72,20 @@
 **Exit condition:**
 - Report readers can distinguish stable trend metrics from exploratory coverage metrics at a glance.
 
+### Backend schema priority
+
+后端落地顺序以 `docs/QUERYSET_MATRIX_SPEC.md` 为准：
+
+1. `QuerySet` / `QueryItem` Pydantic schema
+2. `QueryMatrixInput` / `QueryMatrixOutput`
+3. `generate_queryset()` 统一 service 入口
+4. `querysets` / `queryset_items` 表，并保证 immutable snapshot
+5. inspection result 强制保存 `queryset_id`、`query_id`、平台、模型、状态
+6. report lineage 强制保存 QuerySet 版本、来源、brand_config snapshot
+7. `query_quality_report` + contract tests 作为质量闸门
+
+这条线补齐运行态、冻结态、校验态：运行态保证生成收口，冻结态保证报告可追溯，校验态保证低质量 QuerySet 不能进入诊断。
+
 ## Recommended order
 
 1. Lock the frontend contract.

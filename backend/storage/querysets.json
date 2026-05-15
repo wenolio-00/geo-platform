@@ -1,0 +1,550 @@
+{
+  "qs_2dc43240b02a": {
+    "queryset_id": "qs_2dc43240b02a",
+    "queryset_version": "rule_matrix_v1:duiba_app_ops_v4",
+    "brand_config_id": "bc_55ed43f6c60b",
+    "run_id": "run_e9c2ec109fd1",
+    "queryset_strategy": "rule_matrix_v1",
+    "queryset_source": "matrix_api_v1",
+    "matrix_api_request_id": "mx_local_duiba_1d0e18d41261",
+    "status": "frozen",
+    "quality_status": "pass",
+    "created_at": "2026-05-14T08:29:56.659852+00:00",
+    "frozen_at": "2026-05-14T08:29:56.659852+00:00",
+    "brand_config_snapshot": {
+      "aliases_count": 3,
+      "brand_config_id": "bc_55ed43f6c60b",
+      "competitors": [
+        {
+          "aliases": [
+            "Youzan"
+          ],
+          "business_line": "会员权益",
+          "category": "泛电商 SaaS",
+          "name": "有赞"
+        },
+        {
+          "aliases": [
+            "Weimob"
+          ],
+          "business_line": "会员权益",
+          "category": "泛电商 SaaS",
+          "name": "微盟"
+        },
+        {
+          "aliases": [],
+          "business_line": "积分商城",
+          "category": "金融积分运营",
+          "name": "星耀"
+        },
+        {
+          "aliases": [],
+          "business_line": "积分商城",
+          "category": "金融积分运营",
+          "name": "灵智"
+        }
+      ],
+      "competitors_count": 4,
+      "created_at": "2026-05-14T08:29:56.631154+00:00",
+      "entity_aliases": [
+        "兑吧",
+        "兑吧网络",
+        "Duiba"
+      ],
+      "entity_id": "entity_bfb43f6162df",
+      "entity_name": "杭州兑吧网络科技有限公司",
+      "industry_segments": [
+        "金融场景",
+        "互联网App运营",
+        "内容/媒体App"
+      ],
+      "topics": [
+        {
+          "business_line": "积分商城",
+          "priority": 1,
+          "topic_name": "积分商城管理工具"
+        },
+        {
+          "business_line": "会员权益",
+          "priority": 2,
+          "topic_name": "会员权益运营平台"
+        },
+        {
+          "business_line": "互动广告",
+          "priority": 3,
+          "topic_name": "互动广告接入"
+        }
+      ],
+      "topics_monitored": 3,
+      "updated_at": "2026-05-14T08:29:56.631154+00:00"
+    },
+    "frozen_snapshot_json": {
+      "queryset_id": "qs_2dc43240b02a",
+      "queryset_version": "rule_matrix_v1:duiba_app_ops_v4",
+      "queryset_strategy": "rule_matrix_v1",
+      "queryset_source": "matrix_api_v1",
+      "matrix_api_request_id": "mx_local_duiba_1d0e18d41261",
+      "brand_config_id": "bc_55ed43f6c60b",
+      "run_id": "run_e9c2ec109fd1",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "我们 App 日活下滑，用户打开一次就走了，积分体系能真的把人留住吗",
+          "query_layer": "experimental",
+          "run_scope": "production",
+          "journey_stage": "problem_discovery",
+          "metric_scope": "exploratory_coverage",
+          "metric_weight": 0.0,
+          "topic": "积分商城",
+          "intent_type": "awareness_scenario_explore",
+          "query_pattern": "scenario_explore",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ],
+          "source_dimension_json": {
+            "journey_stage": "problem_discovery",
+            "context": "互联网App运营",
+            "brand_neutral": true,
+            "source_type": "duiba_scenario_library_v4",
+            "matrix_cell_id": "problem_discovery:scenario_explore",
+            "matrix_weight": 0.05
+          },
+          "matrix_cell_id": "problem_discovery:scenario_explore",
+          "prompt_template_id": "duiba_app_ops_v4",
+          "lifecycle_status": "active"
+        },
+        {
+          "query_id": "q_002",
+          "query_text": "保险公司 App 想做签到积分兑换权益，有专门服务金融 App 的平台吗",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "journey_stage": "problem_discovery",
+          "metric_scope": "core_trend",
+          "metric_weight": 0.5,
+          "topic": "会员权益",
+          "intent_type": "awareness_category_rec",
+          "query_pattern": "category_rec",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ],
+          "source_dimension_json": {
+            "journey_stage": "problem_discovery",
+            "context": "金融App",
+            "brand_neutral": true,
+            "source_type": "duiba_scenario_library_v4",
+            "matrix_cell_id": "problem_discovery:category_rec",
+            "matrix_weight": 0.15
+          },
+          "matrix_cell_id": "problem_discovery:category_rec",
+          "prompt_template_id": "duiba_app_ops_v4",
+          "lifecycle_status": "active"
+        },
+        {
+          "query_id": "q_003",
+          "query_text": "兑吧接入超过 14000 个 App，但主要是哪类 App，互动广告和积分商城业务适合我们视频内容 App 吗",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "journey_stage": "purchase_decision",
+          "metric_scope": "core_trend",
+          "metric_weight": 0.5,
+          "topic": "互动广告",
+          "intent_type": "decision_competitive_comp",
+          "query_pattern": "competitive_comp",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ],
+          "source_dimension_json": {
+            "journey_stage": "purchase_decision",
+            "context": "内容App适配性",
+            "brand_neutral": false,
+            "source_type": "duiba_scenario_library_v4",
+            "matrix_cell_id": "purchase_decision:competitive_comp",
+            "matrix_weight": 0.15
+          },
+          "matrix_cell_id": "purchase_decision:competitive_comp",
+          "prompt_template_id": "duiba_app_ops_v4",
+          "lifecycle_status": "active"
+        }
+      ],
+      "quality_report": {
+        "status": "pass",
+        "checks": [
+          {
+            "name": "non_empty_queryset",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "required_fields",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "dedupe",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "topic_coverage",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "intent_distribution",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "query_patterns",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "matrix_policy",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "competitor_coverage",
+            "status": "pass",
+            "detail": null
+          }
+        ],
+        "coverage": {
+          "expected_topics": [
+            "积分商城",
+            "会员权益",
+            "互动广告"
+          ],
+          "covered_topics": [
+            "互动广告",
+            "会员权益",
+            "积分商城"
+          ],
+          "missing_topics": [],
+          "intent_counts": {
+            "awareness_scenario_explore": 1,
+            "awareness_category_rec": 1,
+            "decision_competitive_comp": 1
+          },
+          "query_layer_counts": {
+            "experimental": 1,
+            "core_anchor": 2
+          },
+          "run_scope_counts": {
+            "production": 3
+          },
+          "query_pattern_counts": {
+            "scenario_explore": 1,
+            "category_rec": 1,
+            "competitive_comp": 1
+          },
+          "matrix_cell_counts": {
+            "problem_discovery:scenario_explore": 1,
+            "problem_discovery:category_rec": 1,
+            "purchase_decision:competitive_comp": 1
+          },
+          "metric_scope_counts": {
+            "exploratory_coverage": 1,
+            "core_trend": 2
+          },
+          "core_weight_sum": 1.0,
+          "competitors_configured": [
+            "有赞",
+            "微盟",
+            "星耀",
+            "灵智"
+          ]
+        },
+        "dedupe": {
+          "total_queries": 3,
+          "unique_query_texts": 3,
+          "duplicate_query_texts": [],
+          "duplicate_query_ids": []
+        },
+        "warnings": [],
+        "errors": []
+      }
+    }
+  },
+  "qs_c11da700c6d1": {
+    "queryset_id": "qs_c11da700c6d1",
+    "queryset_version": "rule_matrix_v1:duiba_app_ops_v4",
+    "brand_config_id": "bc_b5d224813bd4",
+    "run_id": "run_1ca950c31e24",
+    "queryset_strategy": "rule_matrix_v1",
+    "queryset_source": "matrix_api_v1",
+    "matrix_api_request_id": "mx_local_duiba_5244adf7cfac",
+    "status": "frozen",
+    "quality_status": "pass",
+    "created_at": "2026-05-14T09:58:09.829364+00:00",
+    "frozen_at": "2026-05-14T09:58:09.829364+00:00",
+    "brand_config_snapshot": {
+      "aliases_count": 3,
+      "brand_config_id": "bc_b5d224813bd4",
+      "competitors": [
+        {
+          "aliases": [
+            "Youzan"
+          ],
+          "business_line": "会员权益",
+          "category": "泛电商 SaaS",
+          "name": "有赞"
+        },
+        {
+          "aliases": [
+            "Weimob"
+          ],
+          "business_line": "会员权益",
+          "category": "泛电商 SaaS",
+          "name": "微盟"
+        },
+        {
+          "aliases": [],
+          "business_line": "积分商城",
+          "category": "金融积分运营",
+          "name": "星耀"
+        },
+        {
+          "aliases": [],
+          "business_line": "积分商城",
+          "category": "金融积分运营",
+          "name": "灵智"
+        }
+      ],
+      "competitors_count": 4,
+      "created_at": "2026-05-14T09:58:09.792042+00:00",
+      "entity_aliases": [
+        "兑吧",
+        "兑吧网络",
+        "Duiba"
+      ],
+      "entity_id": "entity_5d3eaa1afec8",
+      "entity_name": "杭州兑吧网络科技有限公司",
+      "industry_segments": [
+        "金融场景",
+        "互联网App运营",
+        "内容/媒体App"
+      ],
+      "topics": [
+        {
+          "business_line": "积分商城",
+          "priority": 1,
+          "topic_name": "积分商城管理工具"
+        },
+        {
+          "business_line": "会员权益",
+          "priority": 2,
+          "topic_name": "会员权益运营平台"
+        },
+        {
+          "business_line": "互动广告",
+          "priority": 3,
+          "topic_name": "互动广告接入"
+        }
+      ],
+      "topics_monitored": 3,
+      "updated_at": "2026-05-14T09:58:09.792042+00:00"
+    },
+    "frozen_snapshot_json": {
+      "queryset_id": "qs_c11da700c6d1",
+      "queryset_version": "rule_matrix_v1:duiba_app_ops_v4",
+      "queryset_strategy": "rule_matrix_v1",
+      "queryset_source": "matrix_api_v1",
+      "matrix_api_request_id": "mx_local_duiba_5244adf7cfac",
+      "brand_config_id": "bc_b5d224813bd4",
+      "run_id": "run_1ca950c31e24",
+      "queries": [
+        {
+          "query_id": "q_001",
+          "query_text": "我们 App 日活下滑，用户打开一次就走了，积分体系能真的把人留住吗",
+          "query_layer": "experimental",
+          "run_scope": "production",
+          "journey_stage": "problem_discovery",
+          "metric_scope": "exploratory_coverage",
+          "metric_weight": 0.0,
+          "topic": "积分商城",
+          "intent_type": "awareness_scenario_explore",
+          "query_pattern": "scenario_explore",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ],
+          "source_dimension_json": {
+            "journey_stage": "problem_discovery",
+            "context": "互联网App运营",
+            "brand_neutral": true,
+            "source_type": "duiba_scenario_library_v4",
+            "matrix_cell_id": "problem_discovery:scenario_explore",
+            "matrix_weight": 0.05
+          },
+          "matrix_cell_id": "problem_discovery:scenario_explore",
+          "prompt_template_id": "duiba_app_ops_v4",
+          "lifecycle_status": "active"
+        },
+        {
+          "query_id": "q_002",
+          "query_text": "保险公司 App 想做签到积分兑换权益，有专门服务金融 App 的平台吗",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "journey_stage": "problem_discovery",
+          "metric_scope": "core_trend",
+          "metric_weight": 0.5,
+          "topic": "会员权益",
+          "intent_type": "awareness_category_rec",
+          "query_pattern": "category_rec",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ],
+          "source_dimension_json": {
+            "journey_stage": "problem_discovery",
+            "context": "金融App",
+            "brand_neutral": true,
+            "source_type": "duiba_scenario_library_v4",
+            "matrix_cell_id": "problem_discovery:category_rec",
+            "matrix_weight": 0.15
+          },
+          "matrix_cell_id": "problem_discovery:category_rec",
+          "prompt_template_id": "duiba_app_ops_v4",
+          "lifecycle_status": "active"
+        },
+        {
+          "query_id": "q_003",
+          "query_text": "兑吧接入超过 14000 个 App，但主要是哪类 App，互动广告和积分商城业务适合我们视频内容 App 吗",
+          "query_layer": "core_anchor",
+          "run_scope": "production",
+          "journey_stage": "purchase_decision",
+          "metric_scope": "core_trend",
+          "metric_weight": 0.5,
+          "topic": "互动广告",
+          "intent_type": "decision_competitive_comp",
+          "query_pattern": "competitive_comp",
+          "related_competitors": [
+            "有赞",
+            "微盟",
+            "星耀"
+          ],
+          "source_dimension_json": {
+            "journey_stage": "purchase_decision",
+            "context": "内容App适配性",
+            "brand_neutral": false,
+            "source_type": "duiba_scenario_library_v4",
+            "matrix_cell_id": "purchase_decision:competitive_comp",
+            "matrix_weight": 0.15
+          },
+          "matrix_cell_id": "purchase_decision:competitive_comp",
+          "prompt_template_id": "duiba_app_ops_v4",
+          "lifecycle_status": "active"
+        }
+      ],
+      "quality_report": {
+        "status": "pass",
+        "checks": [
+          {
+            "name": "non_empty_queryset",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "required_fields",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "dedupe",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "topic_coverage",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "intent_distribution",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "query_patterns",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "matrix_policy",
+            "status": "pass",
+            "detail": null
+          },
+          {
+            "name": "competitor_coverage",
+            "status": "pass",
+            "detail": null
+          }
+        ],
+        "coverage": {
+          "expected_topics": [
+            "积分商城",
+            "会员权益",
+            "互动广告"
+          ],
+          "covered_topics": [
+            "互动广告",
+            "会员权益",
+            "积分商城"
+          ],
+          "missing_topics": [],
+          "intent_counts": {
+            "awareness_scenario_explore": 1,
+            "awareness_category_rec": 1,
+            "decision_competitive_comp": 1
+          },
+          "query_layer_counts": {
+            "experimental": 1,
+            "core_anchor": 2
+          },
+          "run_scope_counts": {
+            "production": 3
+          },
+          "query_pattern_counts": {
+            "scenario_explore": 1,
+            "category_rec": 1,
+            "competitive_comp": 1
+          },
+          "matrix_cell_counts": {
+            "problem_discovery:scenario_explore": 1,
+            "problem_discovery:category_rec": 1,
+            "purchase_decision:competitive_comp": 1
+          },
+          "metric_scope_counts": {
+            "exploratory_coverage": 1,
+            "core_trend": 2
+          },
+          "core_weight_sum": 1.0,
+          "competitors_configured": [
+            "有赞",
+            "微盟",
+            "星耀",
+            "灵智"
+          ]
+        },
+        "dedupe": {
+          "total_queries": 3,
+          "unique_query_texts": 3,
+          "duplicate_query_texts": [],
+          "duplicate_query_ids": []
+        },
+        "warnings": [],
+        "errors": []
+      }
+    }
+  }
+}

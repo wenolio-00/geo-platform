@@ -34,7 +34,7 @@ A rule set automatically generated, extracted, or iteratively refined by the sys
 Data used to compare the performance of the Baseline Rule and the Auto-generated Rule Set, including but not limited to Brand Mention Rate, Answer Share, Position Index, Sentiment Score, AI Health Index, Owned Source Citation Rate, number of cited sources, competitor suppression ratio, FAQ hit rate, evidence completeness, utility_check, effect_delta, before / after performance by platform, and human review conclusions.
 
 ### 2.4 Project Context
-This may include brand configuration, industry, competitors, QuerySet scenarios, funnel_stage, query_pattern, target platform, content page URL, ActionTask type, and business objective.
+This may include brand configuration, industry, competitors, QuerySet scenarios, journey_stage, query_pattern, target platform, content page URL, ActionTask type, and business objective.
 
 ---
 

@@ -1,0 +1,182 @@
+{
+  "qs_2dc43240b02a:q_001": {
+    "query_id": "q_001",
+    "query_text": "我们 App 日活下滑，用户打开一次就走了，积分体系能真的把人留住吗",
+    "query_layer": "experimental",
+    "run_scope": "production",
+    "journey_stage": "problem_discovery",
+    "metric_scope": "exploratory_coverage",
+    "metric_weight": 0.0,
+    "topic": "积分商城",
+    "intent_type": "awareness_scenario_explore",
+    "query_pattern": "scenario_explore",
+    "related_competitors": [
+      "有赞",
+      "微盟",
+      "星耀"
+    ],
+    "source_dimension_json": {
+      "journey_stage": "problem_discovery",
+      "context": "互联网App运营",
+      "brand_neutral": true,
+      "source_type": "duiba_scenario_library_v4",
+      "matrix_cell_id": "problem_discovery:scenario_explore",
+      "matrix_weight": 0.05
+    },
+    "matrix_cell_id": "problem_discovery:scenario_explore",
+    "prompt_template_id": "duiba_app_ops_v4",
+    "lifecycle_status": "active",
+    "queryset_id": "qs_2dc43240b02a",
+    "created_at": "2026-05-14T08:29:56.659852+00:00"
+  },
+  "qs_2dc43240b02a:q_002": {
+    "query_id": "q_002",
+    "query_text": "保险公司 App 想做签到积分兑换权益，有专门服务金融 App 的平台吗",
+    "query_layer": "core_anchor",
+    "run_scope": "production",
+    "journey_stage": "problem_discovery",
+    "metric_scope": "core_trend",
+    "metric_weight": 0.5,
+    "topic": "会员权益",
+    "intent_type": "awareness_category_rec",
+    "query_pattern": "category_rec",
+    "related_competitors": [
+      "有赞",
+      "微盟",
+      "星耀"
+    ],
+    "source_dimension_json": {
+      "journey_stage": "problem_discovery",
+      "context": "金融App",
+      "brand_neutral": true,
+      "source_type": "duiba_scenario_library_v4",
+      "matrix_cell_id": "problem_discovery:category_rec",
+      "matrix_weight": 0.15
+    },
+    "matrix_cell_id": "problem_discovery:category_rec",
+    "prompt_template_id": "duiba_app_ops_v4",
+    "lifecycle_status": "active",
+    "queryset_id": "qs_2dc43240b02a",
+    "created_at": "2026-05-14T08:29:56.659852+00:00"
+  },
+  "qs_2dc43240b02a:q_003": {
+    "query_id": "q_003",
+    "query_text": "兑吧接入超过 14000 个 App，但主要是哪类 App，互动广告和积分商城业务适合我们视频内容 App 吗",
+    "query_layer": "core_anchor",
+    "run_scope": "production",
+    "journey_stage": "purchase_decision",
+    "metric_scope": "core_trend",
+    "metric_weight": 0.5,
+    "topic": "互动广告",
+    "intent_type": "decision_competitive_comp",
+    "query_pattern": "competitive_comp",
+    "related_competitors": [
+      "有赞",
+      "微盟",
+      "星耀"
+    ],
+    "source_dimension_json": {
+      "journey_stage": "purchase_decision",
+      "context": "内容App适配性",
+      "brand_neutral": false,
+      "source_type": "duiba_scenario_library_v4",
+      "matrix_cell_id": "purchase_decision:competitive_comp",
+      "matrix_weight": 0.15
+    },
+    "matrix_cell_id": "purchase_decision:competitive_comp",
+    "prompt_template_id": "duiba_app_ops_v4",
+    "lifecycle_status": "active",
+    "queryset_id": "qs_2dc43240b02a",
+    "created_at": "2026-05-14T08:29:56.659852+00:00"
+  },
+  "qs_c11da700c6d1:q_001": {
+    "query_id": "q_001",
+    "query_text": "我们 App 日活下滑，用户打开一次就走了，积分体系能真的把人留住吗",
+    "query_layer": "experimental",
+    "run_scope": "production",
+    "journey_stage": "problem_discovery",
+    "metric_scope": "exploratory_coverage",
+    "metric_weight": 0.0,
+    "topic": "积分商城",
+    "intent_type": "awareness_scenario_explore",
+    "query_pattern": "scenario_explore",
+    "related_competitors": [
+      "有赞",
+      "微盟",
+      "星耀"
+    ],
+    "source_dimension_json": {
+      "journey_stage": "problem_discovery",
+      "context": "互联网App运营",
+      "brand_neutral": true,
+      "source_type": "duiba_scenario_library_v4",
+      "matrix_cell_id": "problem_discovery:scenario_explore",
+      "matrix_weight": 0.05
+    },
+    "matrix_cell_id": "problem_discovery:scenario_explore",
+    "prompt_template_id": "duiba_app_ops_v4",
+    "lifecycle_status": "active",
+    "queryset_id": "qs_c11da700c6d1",
+    "created_at": "2026-05-14T09:58:09.829364+00:00"
+  },
+  "qs_c11da700c6d1:q_002": {
+    "query_id": "q_002",
+    "query_text": "保险公司 App 想做签到积分兑换权益，有专门服务金融 App 的平台吗",
+    "query_layer": "core_anchor",
+    "run_scope": "production",
+    "journey_stage": "problem_discovery",
+    "metric_scope": "core_trend",
+    "metric_weight": 0.5,
+    "topic": "会员权益",
+    "intent_type": "awareness_category_rec",
+    "query_pattern": "category_rec",
+    "related_competitors": [
+      "有赞",
+      "微盟",
+      "星耀"
+    ],
+    "source_dimension_json": {
+      "journey_stage": "problem_discovery",
+      "context": "金融App",
+      "brand_neutral": true,
+      "source_type": "duiba_scenario_library_v4",
+      "matrix_cell_id": "problem_discovery:category_rec",
+      "matrix_weight": 0.15
+    },
+    "matrix_cell_id": "problem_discovery:category_rec",
+    "prompt_template_id": "duiba_app_ops_v4",
+    "lifecycle_status": "active",
+    "queryset_id": "qs_c11da700c6d1",
+    "created_at": "2026-05-14T09:58:09.829364+00:00"
+  },
+  "qs_c11da700c6d1:q_003": {
+    "query_id": "q_003",
+    "query_text": "兑吧接入超过 14000 个 App，但主要是哪类 App，互动广告和积分商城业务适合我们视频内容 App 吗",
+    "query_layer": "core_anchor",
+    "run_scope": "production",
+    "journey_stage": "purchase_decision",
+    "metric_scope": "core_trend",
+    "metric_weight": 0.5,
+    "topic": "互动广告",
+    "intent_type": "decision_competitive_comp",
+    "query_pattern": "competitive_comp",
+    "related_competitors": [
+      "有赞",
+      "微盟",
+      "星耀"
+    ],
+    "source_dimension_json": {
+      "journey_stage": "purchase_decision",
+      "context": "内容App适配性",
+      "brand_neutral": false,
+      "source_type": "duiba_scenario_library_v4",
+      "matrix_cell_id": "purchase_decision:competitive_comp",
+      "matrix_weight": 0.15
+    },
+    "matrix_cell_id": "purchase_decision:competitive_comp",
+    "prompt_template_id": "duiba_app_ops_v4",
+    "lifecycle_status": "active",
+    "queryset_id": "qs_c11da700c6d1",
+    "created_at": "2026-05-14T09:58:09.829364+00:00"
+  }
+}

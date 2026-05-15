@@ -48,7 +48,7 @@
       "entity_name": "string",
       "industry_name": "string",
       "competitors": "array",
-      "funnel_stage": "tofu|mofu|bofu|null",
+      "journey_stage": "problem_discovery|solution_evaluation|purchase_decision|null",
       "query_pattern": "scenario_explore|category_rec|competitive_comp|deep_background|decision_confirm|null",
       "platforms": "array",
       "action_type": "string|null",

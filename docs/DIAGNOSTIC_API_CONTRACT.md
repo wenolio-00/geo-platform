@@ -49,6 +49,10 @@ Request body:
   "brand_config_id": "bc_123",
   "queryset_strategy": "rule_matrix_v1",
   "queryset_source": "matrix_api_v1",
+  "queryset_policy": "reuse_latest",
+  "base_queryset_id": "qs_previous_123",
+  "queryset_change_reason": "scheduled_retest",
+  "queryset_approved_by": "ops_owner",
   "inspection_mode": "multi_platform_live_v1",
   "platforms": ["DeepSeek", "Kimi"]
 }
@@ -96,13 +100,21 @@ Required lineage additions:
     "brand_config_id": "bc_123",
     "entity_id": "entity_123",
     "queryset_id": "qs_123",
-    "queryset_version": "rule_matrix_v1",
+    "queryset_version": "rule_matrix_v1.1",
+    "parent_queryset_id": "qs_previous_123",
     "inspection_batch_id": "batch_123",
     "inspection_started_at": "2026-05-12T10:00:00+08:00",
     "inspection_completed_at": "2026-05-12T10:03:00+08:00",
     "aggregation_version": "report_aggregation_v2",
     "queryset_strategy": "rule_matrix_v1",
     "queryset_source": "matrix_api_v1",
+    "queryset_policy": "reuse_latest",
+    "queryset_governance": {
+      "policy": "reuse_latest",
+      "change_type": "reused",
+      "reused_from_queryset_id": "qs_previous_123",
+      "change_reason": "scheduled_retest"
+    },
     "inspection_mode": "multi_platform_live_v1",
     "platforms_requested": ["DeepSeek", "Kimi"],
     "matrix_api_request_id": "mx_req_123"
@@ -120,6 +132,41 @@ Required lineage additions:
 
 `report_data.brand_config` must contain the user-submitted brand config, not a
 hardcoded demo brand.
+
+`report_data.sources` remains a domain-level summary for backwards
+compatibility. URL-level citation details are exposed through
+`report_data.source_references`, sorted by `citation_count` descending and
+limited to the Top 6 URLs used by the report UI:
+
+```json
+{
+  "source_references": [
+    {
+      "url": "https://example.com/case",
+      "domain": "example.com",
+      "title": "Case page",
+      "type": "第三方",
+      "is_official": false,
+      "citation_count": 3,
+      "references": [
+        {
+          "inspection_id": "insp_123",
+          "platform": "DeepSeek",
+          "model": "deepseek-chat",
+          "query_id": "q_001",
+          "query_text": "金融场景积分商城管理工具有哪些？",
+          "topic": "积分商城",
+          "quoted_text": "AI 回答中引用该 URL 时对应的内容片段",
+          "answer_excerpt": "包含该引用判断的更长回答上下文"
+        }
+      ]
+    }
+  ]
+}
+```
+
+When a platform does not return URL-level citations, `source_references` may be
+empty while `sources` still contains domain-level aggregation.
 
 ### GET /api/v1/geo/dashboard-contract
 

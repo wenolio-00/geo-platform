@@ -51,7 +51,7 @@ async def run_diagnostic_job(run_id: str) -> None:
 
         started = datetime.now(timezone.utc).isoformat()
         queryset = await generate_queryset(brand_config, run)
-        queries = queryset.get("queries", [])
+        queries = [query for query in queryset.get("queries", []) if query.get("run_scope") != "shadow"]
         if not queries:
             raise RuntimeError("QuerySet is empty; add at least one topic or industry segment.")
 
@@ -70,7 +70,7 @@ async def run_diagnostic_job(run_id: str) -> None:
             },
         )
 
-        results = await _inspect_queries(run_id, clients, queries, brand_config)
+        results = await _inspect_queries(run_id, clients, queries, brand_config, queryset["queryset_id"])
         completed_results = [r for r in results if r.get("status") == "completed"]
         failed_results = [r for r in results if r.get("status") == "failed"]
 
@@ -132,8 +132,10 @@ async def _inspect_queries(
     clients: list,
     queries: list[dict],
     brand_config: dict,
+    queryset_id: str,
 ) -> list[dict]:
     platforms = [getattr(client, "platform", str(client)) for client in clients]
+    run = runs_store.get(run_id) or {}
     max_concurrency = max(1, int(os.getenv("MAX_CONCURRENCY", "4")))
     semaphore = asyncio.Semaphore(max_concurrency)
     results: list[dict] = []
@@ -145,41 +147,70 @@ async def _inspect_queries(
             request_at = datetime.now(timezone.utc).isoformat()
             try:
                 result = await client.inspect(query, brand_config)
+                returned_at = datetime.now(timezone.utc).isoformat()
+                parsed = result.get("parsed", {})
                 return {
+                    "inspection_result_id": inspection_id,
                     "inspection_id": inspection_id,
                     "status": "completed",
+                    "inspection_batch_id": run.get("inspection_batch_id"),
+                    "run_id": run_id,
+                    "queryset_id": queryset_id,
                     "platform": getattr(client, "platform", "unknown"),
                     "model": result.get("model", "unknown"),
                     "query_id": query["query_id"],
                     "query_text": query["query_text"],
                     "query_pattern": query.get("query_pattern"),
                     "query_layer": query.get("query_layer"),
+                    "journey_stage": query.get("journey_stage"),
+                    "metric_scope": query.get("metric_scope"),
+                    "metric_weight": query.get("metric_weight"),
+                    "matrix_cell_id": query.get("matrix_cell_id"),
+                    "run_scope": query.get("run_scope"),
                     "topic": query["topic"],
                     "intent_type": query["intent_type"],
+                    "started_at": request_at,
+                    "completed_at": returned_at,
                     "request_at": request_at,
-                    "returned_at": datetime.now(timezone.utc).isoformat(),
+                    "returned_at": returned_at,
                     "raw_answer": result.get("raw_answer", ""),
-                    "parsed": result.get("parsed", {}),
+                    "parsed_answer": parsed,
+                    "parsed": parsed,
                     "usage": result.get("usage", {}),
+                    "error_message": None,
                     "error": None,
                 }
             except Exception as exc:
+                returned_at = datetime.now(timezone.utc).isoformat()
                 return {
+                    "inspection_result_id": inspection_id,
                     "inspection_id": inspection_id,
                     "status": "failed",
+                    "inspection_batch_id": run.get("inspection_batch_id"),
+                    "run_id": run_id,
+                    "queryset_id": queryset_id,
                     "platform": getattr(client, "platform", "unknown"),
                     "model": getattr(client, "model", "unknown"),
                     "query_id": query["query_id"],
                     "query_text": query["query_text"],
                     "query_pattern": query.get("query_pattern"),
                     "query_layer": query.get("query_layer"),
+                    "journey_stage": query.get("journey_stage"),
+                    "metric_scope": query.get("metric_scope"),
+                    "metric_weight": query.get("metric_weight"),
+                    "matrix_cell_id": query.get("matrix_cell_id"),
+                    "run_scope": query.get("run_scope"),
                     "topic": query["topic"],
                     "intent_type": query["intent_type"],
+                    "started_at": request_at,
+                    "completed_at": returned_at,
                     "request_at": request_at,
-                    "returned_at": datetime.now(timezone.utc).isoformat(),
+                    "returned_at": returned_at,
                     "raw_answer": "",
+                    "parsed_answer": {},
                     "parsed": {},
                     "usage": {},
+                    "error_message": str(exc),
                     "error": str(exc),
                 }
 

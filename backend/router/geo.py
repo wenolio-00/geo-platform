@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
+from pydantic import ValidationError
 from fastapi import APIRouter, HTTPException, Query
 
 from models.schemas import BrandConfigCreate, BrandConfigResponse, DiagnosticRunCreate, DiagnosticRunResponse
@@ -14,7 +15,7 @@ from service.dashboard_snapshots import (
     sync_completed_run_snapshots,
 )
 from service.inspector import create_run, get_report, get_run, latest_completed_run, run_diagnostic_job
-from service.rule_matrix import generate_rule_matrix_queryset
+from service.queryset import generate_queryset
 
 
 router = APIRouter(prefix="/api/v1/geo", tags=["geo"])
@@ -54,7 +55,9 @@ async def post_diagnostic_run(payload: DiagnosticRunCreate) -> dict:
 
 @router.post("/querysets/generate")
 async def post_queryset_generate(payload: dict) -> dict:
-    brand_config = {
+    brand_config_id = payload.get("brand_config_id")
+    stored_brand_config = get_brand_config(str(brand_config_id)) if brand_config_id else None
+    brand_config = stored_brand_config or {
         "brand_config_id": payload.get("brand_config_id"),
         "entity_id": payload.get("entity_id"),
         "entity_name": str(payload.get("entity_name") or "").strip(),
@@ -63,12 +66,21 @@ async def post_queryset_generate(payload: dict) -> dict:
         "topics": payload.get("topics") or [],
         "competitors": payload.get("competitors") or [],
     }
+    if not brand_config.get("brand_config_id"):
+        raise HTTPException(status_code=422, detail="brand_config_id is required for frozen QuerySet generation")
     if not brand_config["entity_name"]:
         raise HTTPException(status_code=422, detail="entity_name is required")
-    return generate_rule_matrix_queryset(
-        brand_config,
-        str(payload.get("queryset_strategy") or "rule_matrix_v1"),
-    )
+    run = {
+        "run_id": str(payload.get("run_id") or "queryset_preview"),
+        "queryset_strategy": str(payload.get("queryset_strategy") or "rule_matrix_v1"),
+        "queryset_source": str(payload.get("queryset_source") or "matrix_api_v1"),
+        "inspection_mode": str(payload.get("inspection_mode") or "multi_platform_live_v1"),
+        "platforms": payload.get("platforms"),
+    }
+    try:
+        return await generate_queryset(brand_config, run)
+    except (RuntimeError, ValidationError) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get("/diagnostic-runs/{run_id}", response_model=DiagnosticRunResponse)

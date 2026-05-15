@@ -4,6 +4,7 @@ import os
 
 from service.claude_client import ClaudeClient
 from service.deepseek_client import DeepSeekClient
+from service.platform_clients.doubao_client import DoubaoClient
 from service.platform_clients.openai_compatible import OpenAICompatibleClient
 
 PLATFORM_SPECS = {
@@ -51,6 +52,9 @@ def create_platform_clients(platforms: list[str]) -> list[OpenAICompatibleClient
             continue
         if platform == "Claude":
             clients.append(ClaudeClient())
+            continue
+        if platform == "豆包":
+            clients.append(DoubaoClient())
             continue
         spec = PLATFORM_SPECS.get(platform)
         if not spec:

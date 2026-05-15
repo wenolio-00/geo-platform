@@ -79,7 +79,7 @@
 - 人工审核结论。
 
 ### 2.4 Project Context
-包括品牌配置、行业、竞品、QuerySet 场景、funnel_stage、query_pattern、目标平台、内容页面 URL、ActionTask 类型和业务目标。
+包括品牌配置、行业、竞品、QuerySet 场景、journey_stage、query_pattern、目标平台、内容页面 URL、ActionTask 类型和业务目标。
 
 ---
 

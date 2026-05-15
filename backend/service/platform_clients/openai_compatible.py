@@ -28,15 +28,17 @@ class OpenAICompatibleClient:
 
         payload = self._payload(query, brand_config)
         raw_response = await self._post_with_retry(payload)
-        content = (
-            raw_response.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-        )
+        message = raw_response.get("choices", [{}])[0].get("message", {})
+        content = message.get("content", "")
         if not content:
             raise RuntimeError(f"{self.platform} returned an empty message content.")
 
         parsed = parse_json_answer(content, brand_config)
+
+        api_citations = self._extract_citations(raw_response, message)
+        if api_citations:
+            parsed["citations"] = _merge_citations(parsed.get("citations", []), api_citations)
+
         return {
             "platform": self.platform,
             "model": raw_response.get("model", self.model),
@@ -53,13 +55,23 @@ class OpenAICompatibleClient:
         }
 
     def _payload(self, query: dict, brand_config: dict) -> dict[str, Any]:
-        return {
+        payload = {
             "model": self.model,
             "messages": self._messages(query, brand_config),
             "stream": False,
             "temperature": 0,
             "response_format": {"type": "json_object"},
         }
+        plugins = self._web_search_plugins()
+        if plugins:
+            payload["plugins"] = plugins
+        return payload
+
+    def _extract_citations(self, raw_response: dict, message: dict) -> list[dict]:
+        return []
+
+    def _web_search_plugins(self) -> list[dict] | None:
+        return None
 
     async def _post_with_retry(self, payload: dict[str, Any]) -> dict[str, Any]:
         url = f"{self.base_url}/chat/completions"
@@ -125,7 +137,9 @@ class OpenAICompatibleClient:
       "url": "只有 answer 中明确出现 URL 时才填写，否则不要编造",
       "domain": "域名",
       "title": "可为空",
-      "is_official": true
+      "is_official": true,
+      "quoted_text": "该 URL 支撑的回答内容片段；必须来自 answer 或模型明确给出的引用片段",
+      "answer_excerpt": "包含该 URL 或该引用判断的 answer 上下文，可为空"
     }}
   ],
   "parse_confidence": "high|medium|low",
@@ -136,8 +150,27 @@ class OpenAICompatibleClient:
 1. mentioned_brands 只记录 answer 中真实出现或明确指代的品牌。
 2. 不要为了满足字段而编造引用来源；没有 URL 就返回空 citations。
 3. position 按 answer 中品牌首次出现或推荐顺序排序。
+4. citations[].quoted_text 只能摘录 answer 中已有内容或平台返回的引用片段，不要凭空生成网页正文。
 """
         return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def _merge_citations(model_citations: list[dict], api_citations: list[dict]) -> list[dict]:
+    seen_urls: set[str] = set()
+    merged: list[dict] = []
+    for c in model_citations:
+        url = c.get("url") if isinstance(c.get("url"), str) else None
+        if url:
+            seen_urls.add(url)
+            merged.append(c)
+    for c in api_citations:
+        url = c.get("url") if isinstance(c.get("url"), str) else None
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            merged.append(c)
+        elif url is None and c.get("domain"):
+            merged.append(c)
+    return merged
 
 
 def _http_error_message(platform: str, error: httpx.HTTPStatusError) -> str:

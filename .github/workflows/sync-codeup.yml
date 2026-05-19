@@ -1,0 +1,59 @@
+name: Sync to Alibaba Cloud Codeup
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "**"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-codeup
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Push GitHub updates to Codeup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync branches and tags
+        env:
+          CODEUP_REMOTE_URL: ${{ secrets.CODEUP_REMOTE_URL }}
+          CODEUP_PRUNE_DELETED_REFS: ${{ vars.CODEUP_PRUNE_DELETED_REFS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CODEUP_REMOTE_URL}" ]; then
+            echo "Missing GitHub secret: CODEUP_REMOTE_URL"
+            exit 1
+          fi
+
+          git remote add codeup "${CODEUP_REMOTE_URL}"
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+
+          git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin |
+            grep -v '^HEAD$' |
+            while read -r branch; do
+              git push --force codeup "refs/remotes/origin/${branch}:refs/heads/${branch}"
+            done
+
+          git push --force codeup 'refs/tags/*:refs/tags/*'
+
+          if [ "${CODEUP_PRUNE_DELETED_REFS:-false}" = "true" ]; then
+            git ls-remote --heads codeup |
+              awk '{print $2}' |
+              sed 's#refs/heads/##' |
+              while read -r branch; do
+                if ! git show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
+                  git push codeup ":refs/heads/${branch}"
+                fi
+              done
+          fi

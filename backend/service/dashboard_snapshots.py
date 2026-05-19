@@ -8,8 +8,8 @@ from service.storage import brand_dashboard_snapshots_store, runs_store
 
 
 METRIC_DEFINITIONS = {
-    "natural_visibility": {
-        "metric_name": "自然可见度",
+    "visibility": {
+        "metric_name": "可见度",
         "unit": "%",
         "direction": "higher_is_better",
         "benchmark_value": 50.0,
@@ -23,14 +23,6 @@ METRIC_DEFINITIONS = {
         "benchmark_value": 2,
         "benchmark_label": "≤ 2",
         "scale": 1,
-    },
-    "visibility": {
-        "metric_name": "可见度",
-        "unit": "%",
-        "direction": "higher_is_better",
-        "benchmark_value": 40,
-        "benchmark_label": "≥ 40%",
-        "scale": 100,
     },
     "sentiment_score": {
         "metric_name": "舆情指数",
@@ -216,6 +208,8 @@ def _build_snapshot(run: dict[str, Any], report_data: dict[str, Any]) -> dict[st
 
 def _build_contract(snapshot: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
     report = snapshot.get("report_data") or {}
+    queryset = snapshot.get("queryset") or {}
+    lineage = report.get("lineage") or {}
     previous_metrics = (previous or {}).get("metrics") or {}
     metrics = snapshot.get("metrics") or {}
 
@@ -227,10 +221,18 @@ def _build_contract(snapshot: dict[str, Any], previous: dict[str, Any] | None) -
         "latest_run_id": snapshot.get("run_id"),
         "diagnostic_run": {"run_id": snapshot.get("run_id")},
         "report": {"run_id": snapshot.get("run_id"), "report_id": snapshot.get("report_id")},
+        "queryset": {
+            "queryset_id": queryset.get("queryset_id") or lineage.get("queryset_id"),
+            "queryset_version": queryset.get("queryset_version") or lineage.get("queryset_version"),
+            "parent_queryset_id": queryset.get("parent_queryset_id") or lineage.get("parent_queryset_id"),
+            "queries": queryset.get("queries") or [],
+        },
+        "lineage": lineage,
         "key_metrics": [_metric_row(metric_id, metrics, previous_metrics) for metric_id in METRIC_DEFINITIONS],
         "key_issues": _issue_rows(report),
         "optimization_actions": _action_rows(report),
         "cross_topic_rules": _cross_topic_rules(),
+        "rule_activation": _rule_activation_gate(),
     }
 
 
@@ -289,7 +291,7 @@ def _action_rows(report: dict[str, Any]) -> list[dict[str, Any]]:
                 "action_name": item.get("title") or item.get("text") or "优化内容资产",
                 "action_type": "content_optimization",
                 "output_assets": ["选型问答", "官网 FAQ", "案例页"],
-                "success_metrics": ["自然可见度", "品牌自有引用", "AI 推荐度"],
+                "success_metrics": ["可见度", "品牌自有引用", "AI 推荐度"],
                 "priority": item.get("priority") or "P1",
                 "description": item.get("text") or "",
             }
@@ -302,7 +304,7 @@ def _action_rows(report: dict[str, Any]) -> list[dict[str, Any]]:
             "action_name": "持续补强核心场景内容",
             "action_type": "content_optimization",
             "output_assets": ["场景页", "FAQ", "对比页"],
-            "success_metrics": ["自然可见度", "平均位次"],
+            "success_metrics": ["可见度", "平均位次"],
             "priority": "P2",
             "description": "根据本次巡检结果维护可被 AI 引用的事实型内容。",
         }
@@ -315,8 +317,52 @@ def _cross_topic_rules() -> list[dict[str, Any]]:
             "rule_id": "rule_content_optimization",
             "rule_name": "报告诊断内容优化",
             "applies_to": ["content_optimization"],
+            "template": "围绕诊断问题输出清晰主张，补充能力事实和可追溯证据，并避免编造不可验证数据。",
+            "required_elements": ["诊断问题", "品牌定位", "能力事实", "证据来源", "风险约束"],
         }
     ]
+
+
+def _rule_activation_gate() -> dict[str, Any]:
+    baseline_rule = {
+        "rule_id": "baseline_geo_content_v1",
+        "rule_version": "baseline_v1.0",
+        "rule_name": "GEO 内容生成基准规则",
+        "source_type": "baseline",
+        "status": "active",
+        "maintained_by": "user",
+        "applies_to": ["content_optimization", "website_content", "ugc_content", "rewrite_rules", "comparison_page", "case_study"],
+        "template": "统一品牌实体表达，按“主张 + 事实 + 证据”输出内容；不得编造数据、客户案例、排名或攻击竞品。",
+        "required_elements": ["品牌实体", "业务场景", "事实表达", "证据来源", "风险约束"],
+    }
+    active_rule = {
+        "active_rule_id": "active_baseline_geo_content_v1",
+        "source_rule_id": baseline_rule["rule_id"],
+        "source_type": "baseline",
+        "rule_version": baseline_rule["rule_version"],
+        "rule_name": baseline_rule["rule_name"],
+        "platform": "all",
+        "query_pattern": "all",
+        "action_type": "all",
+        "status": "active",
+        "activated_by_evaluation_id": None,
+        "applies_to": baseline_rule["applies_to"],
+        "template": baseline_rule["template"],
+        "required_elements": baseline_rule["required_elements"],
+    }
+    return {
+        "default_decision_policy": {
+            "mvp_default": "keep_baseline",
+            "fallback_rule": "baseline_rule",
+        },
+        "stores": {
+            "baseline_rules_store": [baseline_rule],
+            "platform_rules_store": [],
+            "rule_activation_evaluations": [],
+            "active_rules_store": [active_rule],
+        },
+        "actiontask_rule_source": "优化任务只读取 active_rules_store；若没有匹配规则，则回退 baseline_rules_store 的 active version。",
+    }
 
 
 def _main_brand(brand_id: str, brand_config: dict[str, Any], meta: dict[str, Any]) -> dict[str, Any]:

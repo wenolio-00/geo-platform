@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
-import { fetchContentGenerationContext, generateOptimizedDraft } from '../api/geo.js'
+import {
+  fetchContentGenerationContext,
+  generateOptimizedDraft,
+  saveContentVersionEdit,
+  submitContentFeedback,
+} from '../api/geo.js'
 import { intentLabel } from '../mock/data.js'
 import './ContentGenerationPage.css'
 
@@ -45,6 +50,7 @@ function makeContract(context) {
     main_brand: context.brand,
     optimization_actions: context.actions,
     cross_topic_rules: context.rules,
+    rule_activation: context.rule_activation,
   }
 }
 
@@ -99,19 +105,19 @@ function formatDraftTime(value) {
   }).format(new Date(value))
 }
 
-function getNextDraftVersion(drafts, actionId, ruleId) {
-  return drafts.filter(draft => draft.action_id === actionId && draft.rule_id === ruleId).length + 1
-}
-
 function getLatestDraft(drafts, actionId, ruleId) {
   return drafts
     .filter(draft => draft.action_id === actionId && draft.rule_id === ruleId)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null
 }
 
-function IconButton({ label, onClick, disabled, children }) {
+function contentVersionId(draft) {
+  return draft?.content_version_id || draft?.draft_id
+}
+
+function IconButton({ label, onClick, disabled, active, children }) {
   return (
-    <button className="cg-icon-btn" type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled}>
+    <button className={`cg-icon-btn ${active ? 'active' : ''}`} type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   )
@@ -177,6 +183,8 @@ export default function ContentGenerationPage() {
   const [activeDraftId, setActiveDraftId] = useState(null)
   const [editingText, setEditingText] = useState('')
   const [error, setError] = useState(null)
+  const [feedbackError, setFeedbackError] = useState(null)
+  const [copyState, setCopyState] = useState('idle')
 
   const dispatch = useCallback((event) => {
     setStatus(current => STATUS_TRANSITIONS[current]?.[event] || current)
@@ -185,8 +193,8 @@ export default function ContentGenerationPage() {
   useEffect(() => {
     let mounted = true
 
-    fetchContentGenerationContext({ brand_id: DEFAULT_BRAND_ID })
-      .then(data => {
+	    fetchContentGenerationContext({ brand_id: DEFAULT_BRAND_ID })
+	      .then(data => {
         if (!mounted) return
         const contract = makeContract(data)
         const actionId = actionIdParam || location.state?.actionId || data.defaults.action_id
@@ -194,13 +202,15 @@ export default function ContentGenerationPage() {
         const ruleId = ruleIdParam || location.state?.ruleId || resolveRule(contract, '', action)?.rule_id || data.defaults.rule_id
         const rule = resolveRule(contract, ruleId, action)
 
-        setContext(data)
-        setSelectedActionId(action?.action_id || '')
-        setSelectedRuleId(rule?.rule_id || '')
-        setActiveDraftId(null)
-        setLoading(false)
-        dispatch('SELECT_EMPTY')
-      })
+	        setContext(data)
+	        setDrafts(data.content_versions || [])
+	        setSelectedActionId(action?.action_id || '')
+	        setSelectedRuleId(rule?.rule_id || '')
+	        const latestDraft = getLatestDraft(data.content_versions || [], action?.action_id || '', rule?.rule_id || '')
+	        setActiveDraftId(latestDraft?.draft_id || latestDraft?.content_version_id || null)
+	        setLoading(false)
+	        dispatch(latestDraft ? 'RESTORE_SUCCESS' : 'SELECT_EMPTY')
+	      })
       .catch(err => {
         if (!mounted) return
         setLoadError(err.message || '内容生成上下文加载失败')
@@ -226,9 +236,10 @@ export default function ContentGenerationPage() {
     const latestDraft = getLatestDraft(drafts, actionId, ruleId)
     setActiveDraftId(latestDraft?.draft_id || null)
     setEditingText('')
-    setError(null)
-    dispatch(latestDraft ? 'RESTORE_SUCCESS' : 'SELECT_EMPTY')
-  }, [dispatch, drafts])
+	    setError(null)
+	    setFeedbackError(null)
+	    dispatch(latestDraft ? 'RESTORE_SUCCESS' : 'SELECT_EMPTY')
+	  }, [dispatch, drafts])
 
   function handleActionChange(event) {
     if (!contract) return
@@ -260,8 +271,6 @@ export default function ContentGenerationPage() {
         action_id: selectedAction.action_id,
         rule_id: selectedRule.rule_id,
         contract_version: context.contract_version,
-        version: getNextDraftVersion(drafts, selectedAction.action_id, selectedRule.rule_id),
-        parent_draft_id: null,
       }
       setDrafts(current => [...current, nextDraft])
       setActiveDraftId(nextDraft.draft_id)
@@ -279,22 +288,20 @@ export default function ContentGenerationPage() {
     dispatch('EDIT')
   }
 
-  function handleSaveEdit() {
+  async function handleSaveEdit() {
     if (!activeDraft || !selectedAction || !selectedRule || !editingText.trim()) return
-    const nextDraft = {
-      ...activeDraft,
-      draft_id: `draft_${Date.now()}_manual`,
-      version: getNextDraftVersion(drafts, activeDraft.action_id, activeDraft.rule_id),
-      generated_text: editingText,
-      generation_source: 'manual_edit',
-      parent_draft_id: activeDraft.draft_id,
-      created_at: new Date().toISOString(),
+    try {
+      const savedDraft = await saveContentVersionEdit(contentVersionId(activeDraft), {
+        generated_text: editingText,
+      })
+      setDrafts(current => [...current, savedDraft])
+      setActiveDraftId(savedDraft.draft_id || savedDraft.content_version_id)
+      setEditingText('')
+      setFeedbackError(null)
+      dispatch('SAVE')
+    } catch (err) {
+      setFeedbackError(err.message || '保存编辑失败')
     }
-
-    setDrafts(current => [...current, nextDraft])
-    setActiveDraftId(nextDraft.draft_id)
-    setEditingText('')
-    dispatch('SAVE')
   }
 
   function handleCancelEdit() {
@@ -305,7 +312,29 @@ export default function ContentGenerationPage() {
   async function handleCopy() {
     const text = status === 'editing' ? editingText : activeDraft?.generated_text
     if (!text) return
-    await navigator.clipboard.writeText(text)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyState('success')
+      window.setTimeout(() => setCopyState('idle'), 1800)
+    } catch {
+      setCopyState('error')
+      window.setTimeout(() => setCopyState('idle'), 1800)
+    }
+  }
+
+  async function handleFeedback(signal) {
+    if (!activeDraft) return
+    setFeedbackError(null)
+    try {
+      const result = await submitContentFeedback(contentVersionId(activeDraft), { signal })
+      setDrafts(current => current.map(draft => (
+        contentVersionId(draft) === contentVersionId(activeDraft)
+          ? { ...draft, feedback_summary: result.feedback_summary, feedback_signal: signal }
+          : draft
+      )))
+    } catch (err) {
+      setFeedbackError(err.message || '反馈保存失败')
+    }
   }
 
   function handleReset() {
@@ -366,8 +395,8 @@ export default function ContentGenerationPage() {
         <section className="cg-panel fade-up">
           <div className="cg-panel-h">
             <h2>优化后的文本</h2>
-            {activeDraft ? (
-              <span className="cg-version">v{activeDraft.version} · {activeDraft.generation_source} · {formatDraftTime(activeDraft.created_at)}</span>
+	            {activeDraft ? (
+	              <span className="cg-version">v{activeDraft.version} · {activeDraft.generation_source} · {formatDraftTime(activeDraft.created_at)}</span>
             ) : (
               <span className="cg-meta">生成草稿</span>
             )}
@@ -389,11 +418,18 @@ export default function ContentGenerationPage() {
                     <pre className="cg-text">{activeDraft.generated_text}</pre>
                   )}
                 </div>
-                <div className="cg-toolbar">
-                  <IconButton label="复制" onClick={handleCopy}><CopyIcon /></IconButton>
-                  <IconButton label="有帮助"><ThumbUpIcon /></IconButton>
-                  <IconButton label="没有帮助"><ThumbDownIcon /></IconButton>
-                  <IconButton label="编辑" onClick={handleEdit} disabled={status === 'editing'}><PencilIcon /></IconButton>
+                <div className={`cg-copy-note ${copyState}`}>
+                  {copyState === 'success'
+                    ? '已复制纯正文，可直接粘贴到官网内容编辑器。'
+                    : copyState === 'error'
+                      ? '复制失败，请检查浏览器剪贴板权限。'
+                      : '复制按钮只会复制正文，不包含版本号、反馈或其他页面信息。'}
+                </div>
+	                <div className="cg-toolbar">
+	                  <IconButton label="复制" onClick={handleCopy}><CopyIcon /></IconButton>
+	                  <IconButton label="有帮助" onClick={() => handleFeedback('helpful')} active={activeDraft.feedback_signal === 'helpful'}><ThumbUpIcon /></IconButton>
+	                  <IconButton label="没有帮助" onClick={() => handleFeedback('not_helpful')} active={activeDraft.feedback_signal === 'not_helpful'}><ThumbDownIcon /></IconButton>
+	                  <IconButton label="编辑" onClick={handleEdit} disabled={status === 'editing'}><PencilIcon /></IconButton>
                   <IconButton label="重新生成" onClick={handleGenerate} disabled={status === 'generating' || staleActionRemoved}><RegenerateIcon /></IconButton>
                 </div>
               </>
@@ -401,8 +437,9 @@ export default function ContentGenerationPage() {
               <div className="cg-empty">
                 {status === 'generating' ? '正在生成草稿，请稍候…' : '选择优化动作后，点击生成优化草稿。'}
               </div>
-            )}
-            {status === 'editing' && (
+	            )}
+	            {feedbackError && <div className="cg-error">{feedbackError}</div>}
+	            {status === 'editing' && (
               <div className="cg-edit-actions">
                 <button className="cg-primary-btn" type="button" onClick={handleSaveEdit} disabled={!editingText.trim()}>保存</button>
                 <button className="cg-secondary-btn" type="button" onClick={handleCancelEdit}>放弃</button>
@@ -410,9 +447,18 @@ export default function ContentGenerationPage() {
             )}
           </div>
 
-          {activeDraft && (
-            <>
-              <div className="cg-output">
+	          {activeDraft && (
+	            <>
+	              <div className="cg-output">
+	                <div className="cg-output-h">反馈汇总</div>
+	                <div className="cg-platforms">
+	                  <span className="cg-pill">赞 {activeDraft.feedback_summary?.helpful || 0}</span>
+	                  <span className="cg-pill">踩 {activeDraft.feedback_summary?.not_helpful || 0}</span>
+	                  <span className="cg-pill">净分 {activeDraft.feedback_summary?.net_score || 0}</span>
+	                </div>
+	              </div>
+
+	              <div className="cg-output">
                 <div className="cg-output-h">推荐发布平台</div>
                 <div className="cg-platforms">
                   {activeDraft.publish_platforms.map(platform => (

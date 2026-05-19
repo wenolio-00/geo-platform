@@ -16,7 +16,7 @@
         "brand_tagline": { "type": ["string", "null"] },
         "report_date": { "type": "string" },
         "generated_at": { "type": "string" },
-        "total_queries": { "type": ["number", "null"] },
+        "total_queries": { "type": ["number", "null"], "minimum": 30 },
         "total_competitors": { "type": ["number", "null"] }
       },
       "additionalProperties": true
@@ -29,10 +29,13 @@
         "entity_id": { "type": ["string", "number", "null"] },
         "queryset_id": { "type": ["string", "number", "null"] },
         "queryset_version": { "type": ["string", "number", "null"] },
+        "parent_queryset_id": { "type": ["string", "number", "null"] },
         "inspection_batch_id": { "type": ["string", "number", "null"] },
         "inspection_started_at": { "type": ["string", "null"] },
         "inspection_completed_at": { "type": ["string", "null"] },
-        "aggregation_version": { "type": ["string", "number", "null"] }
+        "aggregation_version": { "type": ["string", "number", "null"] },
+        "queryset_policy": { "type": ["string", "null"] },
+        "queryset_governance": { "type": ["object", "null"] }
       },
       "additionalProperties": true
     },
@@ -53,7 +56,6 @@
     "global": {
       "type": "object",
       "properties": {
-        "natural_visibility": { "type": ["number", "null"] },
         "rank": { "type": ["number", "null"] },
         "visibility": { "type": ["number", "null"] },
         "sentiment_score": { "type": ["number", "null"] },
@@ -72,6 +74,7 @@
     "competitor_ranking": { "type": "array", "items": { "$ref": "#/definitions/competitor" } },
     "platforms": { "type": "array", "items": { "$ref": "#/definitions/platform" } },
     "sources": { "type": "array", "items": { "$ref": "#/definitions/source" } },
+    "source_references": { "type": "array", "items": { "$ref": "#/definitions/sourceReference" } },
     "source_gap": { "type": "array", "items": { "$ref": "#/definitions/sourceGap" } },
     "sentiment": {
       "type": "object",
@@ -156,6 +159,40 @@
       },
       "additionalProperties": true
     },
+    "sourceReference": {
+      "type": "object",
+      "required": ["url", "domain", "citation_count"],
+      "properties": {
+        "url": { "type": "string" },
+        "domain": { "type": "string" },
+        "title": { "type": ["string", "null"] },
+        "type": { "type": ["string", "null"] },
+        "is_official": { "type": ["boolean", "null"] },
+        "citation_count": { "type": ["number", "null"] },
+        "references": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/sourceReferenceItem" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "sourceReferenceItem": {
+      "type": "object",
+      "properties": {
+        "inspection_id": { "type": ["string", "number", "null"] },
+        "platform": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "query_id": { "type": ["string", "number", "null"] },
+        "query_text": { "type": ["string", "null"] },
+        "query_pattern": { "type": ["string", "null"] },
+        "query_layer": { "type": ["string", "null"] },
+        "topic": { "type": ["string", "null"] },
+        "intent_type": { "type": ["string", "null"] },
+        "quoted_text": { "type": ["string", "null"] },
+        "answer_excerpt": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
     "metricDefinition": {
       "type": "object",
       "required": ["metric_id", "metric_name", "formula", "benchmark_label", "direction", "unit"],
@@ -222,7 +259,9 @@
       "properties": {
         "topic_name": { "type": ["string", "null"] },
         "business_line": { "type": ["string", "null"] },
-        "priority": { "type": ["number", "null"] }
+        "priority": { "type": ["number", "null"] },
+        "pain_point": { "type": ["string", "null"] },
+        "goal": { "type": ["string", "null"] }
       },
       "additionalProperties": true
     },

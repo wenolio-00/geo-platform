@@ -45,13 +45,16 @@ def _normalize_parsed(parsed: dict, raw_content: str) -> dict:
     answer = parsed.get("answer")
     mentioned = parsed.get("mentioned_brands")
     citations = parsed.get("citations")
-    return {
+    normalized = {
         "answer": answer if isinstance(answer, str) and answer.strip() else raw_content,
         "mentioned_brands": _normalize_mentions(mentioned),
         "citations": _normalize_citations(citations),
         "parse_confidence": parsed.get("parse_confidence") if parsed.get("parse_confidence") in {"high", "medium", "low"} else "high",
         "notes": parsed.get("notes") if isinstance(parsed.get("notes"), str) else None,
     }
+    for key, value in parsed.items():
+        normalized.setdefault(key, value)
+    return normalized
 
 
 def _normalize_mentions(value: object) -> list[dict]:
@@ -106,9 +109,19 @@ def _normalize_citations(value: object) -> list[dict]:
                 "domain": domain.lower().replace("www.", ""),
                 "title": item.get("title") if isinstance(item.get("title"), str) else None,
                 "is_official": item.get("is_official") if isinstance(item.get("is_official"), bool) else None,
+                "quoted_text": _first_text(item, ["quoted_text", "evidence", "snippet", "content"]),
+                "answer_excerpt": _first_text(item, ["answer_excerpt", "context"]),
             }
         )
     return rows
+
+
+def _first_text(item: dict, keys: list[str]) -> str | None:
+    for key in keys:
+        value = item.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
 
 
 def _fallback_parse(raw_content: str, brand_config: dict) -> dict:
@@ -132,5 +145,5 @@ def _fallback_parse(raw_content: str, brand_config: dict) -> dict:
         "mentioned_brands": mentions,
         "citations": [],
         "parse_confidence": "low",
-        "notes": "DeepSeek did not return valid JSON; parsed conservatively from the raw answer.",
+        "notes": "Provider did not return valid JSON; parsed conservatively from the raw answer.",
     }

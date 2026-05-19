@@ -149,6 +149,11 @@ body {
   letter-spacing: 0.02em;
 }
 
+.nav-badge.ready {
+  background: rgba(52, 199, 89, 0.14);
+  color: #1a7f37;
+}
+
 /* Sidebar footer — client info */
 .sidebar-footer {
   padding: 14px 14px;

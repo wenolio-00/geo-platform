@@ -1,0 +1,207 @@
+{
+  "attr_46e0c26e005b": {
+    "attribution_id": "attr_46e0c26e005b",
+    "schema_version": "effect_attribution_v1",
+    "content_version_id": "cv_03623761dc72",
+    "brand_id": "brand_test",
+    "brand_config_id": "bc_test",
+    "action_id": "action_1",
+    "action_type": "content_optimization",
+    "rule_id": "rule_content",
+    "rule_version": null,
+    "baseline_run_id": "run_before",
+    "comparison_run_id": null,
+    "queryset_id": "qs_test",
+    "queryset_version": "rule_matrix_v1",
+    "parent_queryset_id": null,
+    "target_intents": [
+      "intent_1"
+    ],
+    "target_query_ids": [
+      "q_001"
+    ],
+    "metric_scope": "targeted",
+    "effect_delta": null,
+    "feedback_summary": {
+      "helpful": 0,
+      "not_helpful": 0,
+      "total": 0,
+      "net_score": 0
+    },
+    "comparability": {
+      "same_queryset": null,
+      "same_action": true,
+      "same_rule": true,
+      "confidence": "pending",
+      "reason": "Awaiting comparison diagnostic run."
+    },
+    "status": "awaiting_retest",
+    "message": "Content version persisted; effect_delta will be computed after a comparison run.",
+    "created_at": "2026-05-19T02:40:24.652911+00:00",
+    "updated_at": "2026-05-19T02:40:24.652911+00:00"
+  },
+  "attr_843951a19d0f": {
+    "attribution_id": "attr_843951a19d0f",
+    "schema_version": "effect_attribution_v1",
+    "content_version_id": "cv_4015fe935a8a",
+    "brand_id": "brand_test",
+    "brand_config_id": "bc_test",
+    "action_id": "action_1",
+    "action_type": "content_optimization",
+    "rule_id": "rule_content",
+    "rule_version": null,
+    "baseline_run_id": "run_before",
+    "comparison_run_id": null,
+    "queryset_id": "qs_test",
+    "queryset_version": "rule_matrix_v1",
+    "parent_queryset_id": null,
+    "target_intents": [
+      "intent_1"
+    ],
+    "target_query_ids": [
+      "q_001"
+    ],
+    "metric_scope": "targeted",
+    "effect_delta": null,
+    "feedback_summary": {
+      "helpful": 0,
+      "not_helpful": 0,
+      "total": 0,
+      "net_score": 0
+    },
+    "comparability": {
+      "same_queryset": null,
+      "same_action": true,
+      "same_rule": true,
+      "confidence": "pending",
+      "reason": "Awaiting comparison diagnostic run."
+    },
+    "status": "awaiting_retest",
+    "message": "Content version persisted; effect_delta will be computed after a comparison run.",
+    "created_at": "2026-05-19T02:40:43.997428+00:00",
+    "updated_at": "2026-05-19T02:40:43.997428+00:00"
+  },
+  "attr_6a27d8aadb86": {
+    "attribution_id": "attr_6a27d8aadb86",
+    "schema_version": "effect_attribution_v1",
+    "content_version_id": "cv_09428e68d21e",
+    "brand_id": "brand_test",
+    "brand_config_id": "bc_test",
+    "action_id": "action_1",
+    "action_type": "content_optimization",
+    "rule_id": "rule_content",
+    "rule_version": null,
+    "baseline_run_id": "run_before",
+    "comparison_run_id": null,
+    "queryset_id": "qs_test",
+    "queryset_version": "rule_matrix_v1",
+    "parent_queryset_id": null,
+    "target_intents": [
+      "intent_1"
+    ],
+    "target_query_ids": [
+      "q_001"
+    ],
+    "metric_scope": "targeted",
+    "effect_delta": null,
+    "feedback_summary": {
+      "helpful": 0,
+      "not_helpful": 0,
+      "total": 0,
+      "net_score": 0
+    },
+    "comparability": {
+      "same_queryset": null,
+      "same_action": true,
+      "same_rule": true,
+      "confidence": "pending",
+      "reason": "Awaiting comparison diagnostic run."
+    },
+    "status": "awaiting_retest",
+    "message": "Content version persisted; effect_delta will be computed after a comparison run.",
+    "created_at": "2026-05-19T02:40:44.432108+00:00",
+    "updated_at": "2026-05-19T02:40:44.432108+00:00"
+  },
+  "attr_5a83f9e8dc66": {
+    "attribution_id": "attr_5a83f9e8dc66",
+    "schema_version": "effect_attribution_v1",
+    "content_version_id": "cv_61379ca36116",
+    "brand_id": "brand_test",
+    "brand_config_id": "bc_test",
+    "action_id": "action_1",
+    "action_type": "content_optimization",
+    "rule_id": "rule_content",
+    "rule_version": null,
+    "baseline_run_id": "run_before",
+    "comparison_run_id": null,
+    "queryset_id": "qs_test",
+    "queryset_version": "rule_matrix_v1",
+    "parent_queryset_id": null,
+    "target_intents": [
+      "intent_1"
+    ],
+    "target_query_ids": [
+      "q_001"
+    ],
+    "metric_scope": "targeted",
+    "effect_delta": null,
+    "feedback_summary": {
+      "helpful": 0,
+      "not_helpful": 0,
+      "total": 0,
+      "net_score": 0
+    },
+    "comparability": {
+      "same_queryset": null,
+      "same_action": true,
+      "same_rule": true,
+      "confidence": "pending",
+      "reason": "Awaiting comparison diagnostic run."
+    },
+    "status": "awaiting_retest",
+    "message": "Content version persisted; effect_delta will be computed after a comparison run.",
+    "created_at": "2026-05-19T02:40:55.907784+00:00",
+    "updated_at": "2026-05-19T02:40:55.907784+00:00"
+  },
+  "attr_49ba31b32259": {
+    "attribution_id": "attr_49ba31b32259",
+    "schema_version": "effect_attribution_v1",
+    "content_version_id": "cv_eb46188d0fe7",
+    "brand_id": "brand_test",
+    "brand_config_id": "bc_test",
+    "action_id": "action_1",
+    "action_type": "content_optimization",
+    "rule_id": "rule_content",
+    "rule_version": null,
+    "baseline_run_id": "run_before",
+    "comparison_run_id": null,
+    "queryset_id": "qs_test",
+    "queryset_version": "rule_matrix_v1",
+    "parent_queryset_id": null,
+    "target_intents": [
+      "intent_1"
+    ],
+    "target_query_ids": [
+      "q_001"
+    ],
+    "metric_scope": "targeted",
+    "effect_delta": null,
+    "feedback_summary": {
+      "helpful": 0,
+      "not_helpful": 0,
+      "total": 0,
+      "net_score": 0
+    },
+    "comparability": {
+      "same_queryset": null,
+      "same_action": true,
+      "same_rule": true,
+      "confidence": "pending",
+      "reason": "Awaiting comparison diagnostic run."
+    },
+    "status": "awaiting_retest",
+    "message": "Content version persisted; effect_delta will be computed after a comparison run.",
+    "created_at": "2026-05-19T02:41:07.758552+00:00",
+    "updated_at": "2026-05-19T02:41:07.758552+00:00"
+  }
+}

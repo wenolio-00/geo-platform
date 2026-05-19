@@ -1,7 +1,29 @@
+import { useEffect, useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import './Layout.css'
 
+const LATEST_DIAGNOSTIC_REPORT_KEY = 'geo.latestDiagnosticReportUrl'
+
+function getLatestDiagnosticReportUrl() {
+  if (typeof window === 'undefined') return '/report/diagnostic'
+  return window.localStorage.getItem(LATEST_DIAGNOSTIC_REPORT_KEY) || '/report/diagnostic'
+}
+
 export default function Layout() {
+  const [diagnosticReportUrl, setDiagnosticReportUrl] = useState(getLatestDiagnosticReportUrl)
+
+  useEffect(() => {
+    const updateDiagnosticReportUrl = () => setDiagnosticReportUrl(getLatestDiagnosticReportUrl())
+    window.addEventListener('storage', updateDiagnosticReportUrl)
+    window.addEventListener('geo:diagnostic-report-updated', updateDiagnosticReportUrl)
+    return () => {
+      window.removeEventListener('storage', updateDiagnosticReportUrl)
+      window.removeEventListener('geo:diagnostic-report-updated', updateDiagnosticReportUrl)
+    }
+  }, [])
+
+  const hasDiagnosticReport = diagnosticReportUrl !== '/report/diagnostic'
+
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -48,13 +70,13 @@ export default function Layout() {
           </NavLink>
 
           <div className="nav-section-label" style={{marginTop: 24}}>报告</div>
-          <NavLink to="/report/diagnostic" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink to={diagnosticReportUrl} className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
             <span>诊断报告</span>
-            <span className="nav-badge">HTML</span>
+            <span className={`nav-badge ${hasDiagnosticReport ? 'ready' : ''}`}>{hasDiagnosticReport ? 'READY' : 'HTML'}</span>
           </NavLink>
         </nav>
 

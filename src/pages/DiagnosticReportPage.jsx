@@ -4,6 +4,9 @@ import { buildReportDisplayData, getReportDataState } from '../lib/reportDataAda
 import { generateReportHtml } from '../lib/reportGenerator.js'
 import './DiagnosticReportPage.css'
 
+const DEFAULT_GENERATION_TIME_MS = 3 * 60 * 1000
+const ACTIVE_RUN_STATUSES = ['queued', 'running', 'aggregating']
+
 function StatusState({ title, detail, progress = null, estimatedGenerationTime = null, showProgress = false }) {
   const hasProgress = Number.isFinite(Number(progress))
   const progressValue = hasProgress ? Math.max(0, Math.min(100, Math.round(Number(progress)))) : 0
@@ -17,7 +20,7 @@ function StatusState({ title, detail, progress = null, estimatedGenerationTime =
         {(showProgress || hasProgress || estimatedGenerationTime) ? (
           <div className="report-state-progress">
             <div className="report-progress-top">
-              <span>预计生成时间</span>
+              <span>预计还需时间</span>
               <strong>{estimatedGenerationTime || '计算中'}</strong>
             </div>
             <div
@@ -72,16 +75,40 @@ function formatDuration(ms) {
   return rest ? `${minutes} 分 ${rest} 秒` : `${minutes} 分钟`
 }
 
+function parseTimestamp(value) {
+  if (!value) return null
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function getRunStartTime(run, fallbackStartedAt) {
+  return (
+    parseTimestamp(run?.inspection_started_at) ||
+    parseTimestamp(run?.inspectionStartedAt) ||
+    parseTimestamp(run?.created_at) ||
+    parseTimestamp(run?.createdAt) ||
+    fallbackStartedAt
+  )
+}
+
 function getEstimatedGenerationTime(run, progress, startedAt) {
+  if (progress >= 100) return '即将完成'
+
+  const explicitRemaining = run?.estimated_remaining_ms ?? run?.estimatedRemainingMs
+  if (explicitRemaining !== null && explicitRemaining !== undefined) {
+    const explicitRemainingMs = Number(explicitRemaining)
+    if (Number.isFinite(explicitRemainingMs)) {
+      return explicitRemainingMs > 0 ? `还需约 ${formatDuration(explicitRemainingMs)}` : '即将完成'
+    }
+  }
+
   const explicitEstimate = run?.estimated_generation_time || run?.estimatedGenerationTime
   if (explicitEstimate) return String(explicitEstimate)
-  if (progress >= 100) return '即将完成'
-  if (!Number.isFinite(progress) || progress <= 0 || !startedAt) return '计算中'
 
-  const elapsedMs = Date.now() - startedAt
-  if (elapsedMs < 4000 || progress < 5) return '约 3 分钟'
-
-  const remainingMs = elapsedMs * ((100 - progress) / progress)
+  if (!startedAt) return '计算中'
+  const elapsedMs = Math.max(0, Date.now() - startedAt)
+  const remainingMs = DEFAULT_GENERATION_TIME_MS - elapsedMs
+  if (remainingMs <= 0) return progress >= 92 ? '即将完成' : '已超出预估，正在继续处理'
   return `还需约 ${formatDuration(remainingMs)}`
 }
 
@@ -163,9 +190,8 @@ function Overview({ data }) {
         <div className="dr-ov-card"><div className="dr-ov-brow">品牌健康评分</div><Gauge score={data.global.ai_recommend_score} /></div>
       </div>
       <div className="dr-factor-strip">
-        <div className="dr-factor-card"><div className={`dr-factor-v ${numberClass((data.global.natural_visibility ?? 0) * 100)}`}>{displayPercent(data.global.natural_visibility)}</div><div className="dr-factor-l">自然可见度</div><div className="dr-factor-sub">品牌出现在 AI 回答中的比例</div></div>
+        <div className="dr-factor-card"><div className={`dr-factor-v ${numberClass((data.global.visibility ?? 0) * 100)}`}>{displayPercent(data.global.visibility)}</div><div className="dr-factor-l">可见度</div><div className="dr-factor-sub">query 不提及品牌时，回答中提及品牌的概率</div></div>
         <div className="dr-factor-card"><div className="dr-factor-v">{displayValue(data.global.rank, 2)}</div><div className="dr-factor-l">平均位次</div><div className="dr-factor-sub">品牌被提及时在回答中的平均排名</div></div>
-        <div className="dr-factor-card"><div className={`dr-factor-v ${numberClass((data.global.visibility ?? 0) * 100)}`}>{displayPercent(data.global.visibility)}</div><div className="dr-factor-l">可见度</div><div className="dr-factor-sub">自然可见度 ÷ 平均位次</div></div>
         <div className="dr-factor-card"><div className={`dr-factor-v ${numberClass((data.global.sentiment_score ?? 0) * 100)}`}>{displayPercent(data.global.sentiment_score)}</div><div className="dr-factor-l">舆情指数</div><div className="dr-factor-sub">正面=1.0 · 中立=0.5 · 负面=0.1 加权均值</div></div>
       </div>
       <div className="dr-factor-formula">AI 推荐度 = 可见度 × 舆情指数 × 100 · 任意因子为 0 则得分为 0</div>
@@ -181,12 +207,14 @@ function Insights({ data }) {
 
 function Sources({ data }) {
   const sources = data.display.sources
-  if (!sources.length && !data.display.source_gap.length) return <EmptyState title="暂无信源数据" detail="聚合数据未提供 sources 或 source_gap。" />
+  const sourceReferences = data.display.source_references || []
+  if (!sources.length && !sourceReferences.length && !data.display.source_gap.length) return <EmptyState title="暂无信源数据" detail="聚合数据未提供 sources、source_references 或 source_gap。" />
   const max = Math.max(...sources.map(row => row.count ?? 0), 0)
   const own = sources.filter(row => row.type === '自有').reduce((sum, row) => sum + (row.count ?? 0), 0)
   return (
     <>
       {sources.length ? <><div className="dr-kpis c3"><div className="dr-kpi"><div className="dr-kpi-v ok">{own}</div><div className="dr-kpi-l">品牌自有引用量</div></div><div className="dr-kpi"><div className="dr-kpi-v">{max}</div><div className="dr-kpi-l">最高信源引用数</div></div><div className="dr-kpi"><div className="dr-kpi-v">{sources.length}</div><div className="dr-kpi-l">信源域名数</div></div></div><div className="dr-sub-h">引用信源排行</div><div className="dr-src-list">{sources.map((source, index) => <div className="dr-src" key={source.domain}><span className="dr-src-i">#{index + 1}</span><div className="dr-src-n">{source.domain} {source.type ? <span className="dr-chip muted">{source.type}</span> : null}</div><div className="dr-src-bar"><MiniBar value={max ? (source.count ?? 0) / max * 100 : 0} type={source.type === '自有' ? 'g' : 'n'} /></div><span className="dr-src-c">{displayValue(source.count, 0)}</span></div>)}</div></> : <EmptyState title="暂无引用信源排行" />}
+      {sourceReferences.length ? <><div className="dr-sub-h">高频引用网址</div><div className="dr-url-list">{sourceReferences.map((source, index) => <details className="dr-url-ref" key={source.url}><summary><span className="dr-src-i">#{index + 1}</span><span className="dr-url-main"><a href={source.url} target="_blank" rel="noreferrer">{source.title || source.url}</a><small>{source.domain} {source.type ? <span className="dr-chip muted">{source.type}</span> : null}</small></span><span className="dr-src-c">{displayValue(source.citation_count, 0)}</span></summary><div className="dr-url-ref-body">{source.references.length ? source.references.map((ref, refIndex) => <div className="dr-url-quote" key={`${source.url}-${ref.inspection_id || refIndex}`}><div className="dr-url-meta">{[ref.platform, ref.topic, ref.query_id].filter(Boolean).join(' · ') || '未采集'}</div><p>{ref.quoted_text || ref.answer_excerpt || '暂无引用片段'}</p>{ref.query_text ? <div className="dr-url-query">{ref.query_text}</div> : null}</div>) : <div className="dr-url-quote"><p>暂无引用片段</p></div>}</div></details>)}</div></> : null}
     </>
   )
 }
@@ -258,7 +286,7 @@ export default function DiagnosticReportPage() {
         const runStatus = String(run?.status || '').toLowerCase()
         const progress = getProgressValue(run?.progress)
         const detail = run?.message || run?.detail || (progress !== null ? `当前进度 ${progress}%` : '后端正在生成巡检聚合数据。')
-        if (!runStartedAtRef.current) runStartedAtRef.current = Date.now()
+        if (!runStartedAtRef.current) runStartedAtRef.current = getRunStartTime(run, Date.now())
         const estimatedGenerationTime = getEstimatedGenerationTime(run, progress, runStartedAtRef.current)
 
         if (runStatus === 'completed') {
@@ -273,7 +301,18 @@ export default function DiagnosticReportPage() {
           return
         }
 
-        if (['queued', 'running', 'aggregating'].includes(runStatus)) {
+        if (runStatus === 'interrupted') {
+          setRawData(null)
+          setStatus({
+            status: 'interrupted',
+            message: '诊断任务已中断',
+            detail: '任务被后端重启中断，请重新发起诊断。',
+            progress: progress ?? 0,
+          })
+          return
+        }
+
+        if (ACTIVE_RUN_STATUSES.includes(runStatus)) {
           if (attempt >= 120) {
             setRawData(null)
             setStatus({ status: 'error', message: '诊断任务超时', detail: '任务超过 3 分钟仍未完成，请稍后刷新或检查后端任务状态。' })
@@ -330,6 +369,7 @@ export default function DiagnosticReportPage() {
   if (status.status === 'empty') return <StatusState title="暂无巡检数据" detail="当前品牌或批次没有可生成报告的数据。" />
   if (status.status === 'invalid') return <StatusState title="报告数据结构异常" detail={(status.errors || []).join('；')} />
   if (status.status === 'failed') return <StatusState title="诊断任务失败" detail={status.detail || '请检查后端任务日志。'} />
+  if (status.status === 'interrupted') return <StatusState title="诊断任务已中断" detail={status.detail || '任务被后端重启中断，请重新发起诊断。'} />
   if (status.status === 'error') return <StatusState title={status.message || '数据加载失败'} detail={status.detail || '请稍后重试或检查诊断报告接口。'} />
 
   return (

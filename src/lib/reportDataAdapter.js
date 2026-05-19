@@ -6,15 +6,6 @@ export const DISPLAY_LIMIT = 6
 
 export const REPORT_METRIC_DEFINITIONS = [
   {
-    metric_id: 'natural_visibility',
-    metric_name: '自然可见度',
-    formula: '品牌出现在 AI 回答中的比例',
-    benchmark_value: 0.5,
-    benchmark_label: '≥ 50%',
-    direction: 'higher_is_better',
-    unit: '%',
-  },
-  {
     metric_id: 'rank',
     metric_name: '平均位次',
     aliases: ['avg_rank_position'],
@@ -27,9 +18,9 @@ export const REPORT_METRIC_DEFINITIONS = [
   {
     metric_id: 'visibility',
     metric_name: '可见度',
-    formula: '自然可见度÷ 平均位次（平均位次越大惩罚越重；缺失时可见度=0）',
-    benchmark_value: 0.4,
-    benchmark_label: '≥ 40%',
+    formula: 'query 不提及品牌时，回答中提及品牌的概率',
+    benchmark_value: 0.5,
+    benchmark_label: '≥ 50%',
     direction: 'higher_is_better',
     unit: '%',
   },
@@ -178,11 +169,10 @@ function roundNumber(value, decimals = 4) {
   return Math.round(value * factor) / factor
 }
 
-export function computeVisibilityV63(naturalVisibility, rank) {
-  const natural = toNumberOrNull(naturalVisibility)
-  const avgRank = toNumberOrNull(rank)
-  if (natural === null || avgRank === null || avgRank <= 0) return 0
-  return roundNumber(natural / avgRank)
+export function computeVisibilityV63(visibility, legacyNaturalVisibility = null) {
+  const explicit = toNumberOrNull(visibility)
+  if (explicit !== null) return explicit
+  return toNumberOrNull(legacyNaturalVisibility)
 }
 
 function normalizeSentimentChange(value) {
@@ -337,9 +327,43 @@ function normalizeBrandConfig(config) {
   }
 }
 
+function normalizeSourceReferences(rows) {
+  return normalizeArray(rows).map(row => {
+    const references = normalizeArray(row?.references).map(ref => ({
+      ...ref,
+      inspection_id: toStringOrNull(ref?.inspection_id),
+      platform: toStringOrNull(ref?.platform),
+      model: toStringOrNull(ref?.model),
+      query_id: toStringOrNull(ref?.query_id),
+      query_text: toStringOrNull(ref?.query_text),
+      query_pattern: toStringOrNull(ref?.query_pattern),
+      query_layer: toStringOrNull(ref?.query_layer),
+      topic: toStringOrNull(ref?.topic),
+      intent_type: toStringOrNull(ref?.intent_type),
+      quoted_text: toStringOrNull(ref?.quoted_text),
+      answer_excerpt: toStringOrNull(ref?.answer_excerpt),
+    })).filter(ref => ref.quoted_text || ref.answer_excerpt || ref.query_text)
+
+    return {
+      ...row,
+      url: toStringOrNull(row?.url),
+      domain: toStringOrNull(row?.domain),
+      title: toStringOrNull(row?.title),
+      type: toStringOrNull(row?.type),
+      is_official: typeof row?.is_official === 'boolean' ? row.is_official : null,
+      citation_count: toNumberOrNull(row?.citation_count) ?? references.length,
+      references,
+    }
+  }).filter(row => row.url && row.domain)
+}
+
 function sectionEmpty(data, section) {
   if (section === 'executive_summary') return !data.executive_summary
-  if (section === 'sources') return (data.sources?.length ?? 0) === 0 && (data.source_gap?.length ?? 0) === 0
+  if (section === 'sources') {
+    return (data.sources?.length ?? 0) === 0 &&
+      (data.source_references?.length ?? 0) === 0 &&
+      (data.source_gap?.length ?? 0) === 0
+  }
   if (section === 'competitors') return (data.competitor_ranking?.length ?? 0) === 0
   if (section === 'sentiment') return !data.sentiment && (data.topics?.length ?? 0) === 0
   if (section === 'brand_config') return !data.brand_config
@@ -370,9 +394,8 @@ export function normalizeReportData(raw = {}) {
   audit.missing_fields = unique([...audit.missing_fields, ...validation.missingFields])
   audit.validation_errors = unique([...audit.validation_errors, ...validation.errors])
   const brandConfig = normalizeBrandConfig(raw.brand_config)
-  const naturalVisibility = toNumberOrNull(raw.global?.natural_visibility)
   const rank = toNumberOrNull(raw.global?.rank ?? raw.global?.avg_rank_position)
-  const visibility = computeVisibilityV63(naturalVisibility, rank)
+  const visibility = computeVisibilityV63(raw.global?.visibility, raw.global?.natural_visibility)
   const sentimentScore = computeSentimentScoreV63(raw.sentiment, raw.global?.sentiment_score)
   const aiRecommendScore = computeAiRecommendScoreV63(visibility, sentimentScore)
   const ownCitations = computeOwnCitationsV63(raw.global, raw.sources)
@@ -394,7 +417,6 @@ export function normalizeReportData(raw = {}) {
     metric_definitions: REPORT_METRIC_DEFINITIONS,
     executive_summary: toStringOrNull(raw.executive_summary),
     global: {
-      natural_visibility: naturalVisibility,
       rank,
       visibility,
       sentiment_score: sentimentScore,
@@ -426,6 +448,7 @@ export function normalizeReportData(raw = {}) {
       is_cited: typeof row?.is_cited === 'boolean' ? row.is_cited : null,
       is_official: typeof row?.is_official === 'boolean' ? row.is_official : null,
     })).filter(row => row.domain),
+    source_references: normalizeSourceReferences(raw.source_references),
     source_gap: normalizeArray(raw.source_gap).map(row => ({
       ...row,
       domain: toStringOrNull(row?.domain),
@@ -454,7 +477,7 @@ export function normalizeReportData(raw = {}) {
     display: {},
   }
 
-  for (const path of ['insights', 'sources', 'source_gap', 'platforms', 'competitor_ranking', 'topics', 'brand_config']) {
+  for (const path of ['insights', 'sources', 'source_references', 'source_gap', 'platforms', 'competitor_ranking', 'topics', 'brand_config']) {
     if (!hasOwnPath(raw, path)) data.audit.missing_fields = unique([...data.audit.missing_fields, path])
   }
 
@@ -484,6 +507,8 @@ export function applyDisplayRules(normalized) {
     .sort((a, b) => (b.mention_rate ?? -Infinity) - (a.mention_rate ?? -Infinity))
   data.sources = [...data.sources]
     .sort((a, b) => (b.count ?? -Infinity) - (a.count ?? -Infinity))
+  data.source_references = [...data.source_references]
+    .sort((a, b) => (b.citation_count ?? -Infinity) - (a.citation_count ?? -Infinity))
   data.platforms = [...data.platforms]
     .sort((a, b) => (b.ai_recommend_score ?? -Infinity) - (a.ai_recommend_score ?? -Infinity))
   data.insights = [...data.insights]
@@ -492,6 +517,7 @@ export function applyDisplayRules(normalized) {
 
   data.display.competitor_ranking = truncateRows(data.competitor_ranking, 'competitor_ranking', data.audit)
   data.display.sources = truncateRows(data.sources, 'sources', data.audit)
+  data.display.source_references = truncateRows(data.source_references, 'source_references', data.audit)
   data.display.source_gap = truncateRows(data.source_gap, 'source_gap', data.audit)
   data.display.platforms = truncateRows(data.platforms, 'platforms', data.audit)
   data.display.insights = truncateRows(data.insights, 'insights', data.audit)

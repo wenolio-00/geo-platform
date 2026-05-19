@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AutoGEO 后端诊断主链路</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --bg-soft: #fbfbfd;
+      --panel: rgba(255, 255, 255, 0.88);
+      --panel-strong: #ffffff;
+      --ink: #1d1d1f;
+      --muted: #6e6e73;
+      --line: rgba(29, 29, 31, 0.08);
+      --line-strong: rgba(29, 29, 31, 0.14);
+      --blue: #0071e3;
+      --blue-strong: #005bb5;
+      --blue-soft: rgba(0, 113, 227, 0.08);
+      --green: #248a3d;
+      --green-soft: rgba(36, 138, 61, 0.1);
+      --violet: #7c5cff;
+      --violet-soft: rgba(124, 92, 255, 0.1);
+      --amber: #b86f00;
+      --amber-soft: rgba(184, 111, 0, 0.1);
+      --red: #d13b30;
+      --red-soft: rgba(209, 59, 48, 0.1);
+      --shadow: 0 24px 64px rgba(15, 23, 42, 0.08);
+      --shadow-soft: 0 16px 36px rgba(15, 23, 42, 0.06);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(0, 113, 227, 0.12), transparent 32%),
+        linear-gradient(180deg, #fbfbfd 0%, #f3f4f7 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(29, 29, 31, 0.06);
+      color: #1f3f74;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1360px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 28px 0 52px;
+    }
+
+    .hero,
+    .flow-panel,
+    .detail-panel,
+    .secondary-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+      gap: 22px;
+      padding: 40px;
+      margin-bottom: 24px;
+      align-items: stretch;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(38px, 5vw, 60px);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .lead {
+      max-width: 780px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.85;
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 12px;
+      align-content: center;
+    }
+
+    .hero-metric {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 12px;
+      align-items: baseline;
+      padding: 18px 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.78);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .hero-metric strong {
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--ink);
+    }
+
+    .hero-metric span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .flow-panel {
+      padding: 28px;
+    }
+
+    .flow-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .flow-head h2,
+    .detail-panel h2,
+    .secondary-card h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+    }
+
+    .flow-head-copy {
+      max-width: 560px;
+    }
+
+    .flow-head-copy p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span,
+    .detail-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .dot.green { background: var(--green); }
+    .dot.violet { background: var(--violet); }
+    .dot.amber { background: var(--amber); }
+    .dot.red { background: var(--red); }
+
+    .top-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .module-chip {
+      display: grid;
+      gap: 10px;
+      width: 100%;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,248,252,0.96));
+      text-align: left;
+      color: var(--ink);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .module-chip-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .module-chip-num {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .module-chip-arrow {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(29,29,31,0.05);
+      color: var(--muted);
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+    }
+
+    .module-chip[aria-expanded="true"] .module-chip-arrow {
+      transform: rotate(45deg);
+      background: rgba(0, 113, 227, 0.12);
+      color: var(--blue);
+    }
+
+    .module-chip h3 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+    }
+
+    .module-chip p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .module-ipo-inline {
+      display: grid;
+      gap: 6px;
+      padding-top: 4px;
+    }
+
+    .module-ipo-row {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 8px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .module-ipo-row b {
+      color: var(--ink);
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .diagram-panel {
+      min-width: 0;
+    }
+
+    .module-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .module-block {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255,255,255,0.82);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .module-block.active {
+      border-color: rgba(0, 113, 227, 0.18);
+    }
+
+    .module-expand {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: max-height 240ms ease, opacity 180ms ease, transform 180ms ease;
+    }
+
+    .module-block.active .module-expand {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .module-expand-inner {
+      padding: 0 20px 20px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .module-summary-card {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding-top: 6px;
+    }
+
+    .ipo-card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(248,249,252,0.92);
+    }
+
+    .ipo-card h4 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--blue);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .ipo-card p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .module-subnodes {
+      display: grid;
+      gap: 10px;
+    }
+
+    .module-subnodes-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .module-subnodes-head strong {
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .module-subnodes-head span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .node-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .node {
+      position: relative;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      text-align: left;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #ffffff;
+      color: var(--ink);
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .node:hover,
+    .node:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 32px rgba(16, 24, 40, 0.08);
+      border-color: rgba(0, 113, 227, 0.16);
+      outline: none;
+    }
+
+    .node[aria-pressed="true"] {
+      border-color: rgba(0, 113, 227, 0.28);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.08), 0 14px 32px rgba(16, 24, 40, 0.08);
+      background: #f5faff;
+    }
+
+    .node .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .badge.green {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .badge.blue {
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .badge.violet {
+      color: var(--violet);
+      background: var(--violet-soft);
+    }
+
+    .badge.amber {
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .badge.red {
+      color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .node h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.45;
+      letter-spacing: -0.02em;
+    }
+
+    .node p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .node small {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .detail-panel {
+      padding: 24px;
+      position: sticky;
+      top: 20px;
+      background: rgba(255,255,255,0.92);
+    }
+
+    .detail-panel-head {
+      margin-bottom: 18px;
+    }
+
+    .detail-kicker {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      margin: 10px 0 8px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .detail-title {
+      margin: 0 0 12px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.04em;
+    }
+
+    .detail-summary {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+      margin: 0;
+    }
+
+    .detail-group {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .detail-group strong {
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--ink);
+    }
+
+    .detail-group p,
+    .detail-group li {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .detail-group ul,
+    .detail-group ol {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .detail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .secondary-grid {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .secondary-card {
+      overflow: hidden;
+      background: rgba(255,255,255,0.86);
+    }
+
+    .secondary-toggle {
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+      padding: 22px 22px 18px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      color: inherit;
+    }
+
+    .secondary-toggle:hover,
+    .secondary-toggle:focus-visible {
+      outline: none;
+      background: rgba(0, 113, 227, 0.03);
+    }
+
+    .secondary-toggle h3 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.3;
+      letter-spacing: -0.03em;
+    }
+
+    .secondary-toggle p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .secondary-arrow {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(29,29,31,0.05);
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+    }
+
+    .secondary-card.open .secondary-arrow {
+      transform: rotate(45deg);
+      background: rgba(0, 113, 227, 0.12);
+      color: var(--blue);
+    }
+
+    .secondary-content {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 240ms ease, opacity 180ms ease;
+    }
+
+    .secondary-card.open .secondary-content {
+      opacity: 1;
+    }
+
+    .secondary-inner {
+      padding: 0 22px 22px;
+    }
+
+    .secondary-inner ul,
+    .secondary-inner ol {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .secondary-inner li + li {
+      margin-top: 8px;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.75;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 1180px) {
+      .hero,
+      .main-grid,
+      .secondary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .top-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .module-summary-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        width: min(100vw - 20px, 1360px);
+        padding-top: 18px;
+      }
+
+      .hero,
+      .flow-panel,
+      .secondary-toggle,
+      .secondary-inner {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .top-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <h1>AutoGEO 后端诊断主链路</h1>
+      </div>
+
+      <aside class="hero-side" aria-label="结构说明">
+        <div class="hero-metric"><strong>6</strong><span>按时序查看 6 个关键环节。</span></div>
+        <div class="hero-metric"><strong>3</strong><span>工程约束、联调顺序、排查重点作为辅助部分单独呈现。</span></div>
+      </aside>
+    </section>
+
+    <section class="flow-panel">
+      <div class="flow-head">
+        <div class="flow-head-copy">
+          <h2>主链路与辅助部分</h2>
+          <p>按时序查看 6 个关键环节，工程约束等 3 个部分单独展开。</p>
+        </div>
+      </div>
+
+      <div class="top-strip" aria-label="六个关键环节">
+        <article class="module-chip">
+          <div class="module-chip-top">
+            <span class="module-chip-num">01 · 配置品牌</span>
+          </div>
+          <h3>Brand Config</h3>
+          <p>收敛诊断对象、业务线与竞品输入。</p>
+          <div class="module-ipo-inline">
+            <div class="module-ipo-row"><b>I</b><span>企业、行业、topics、competitors。</span></div>
+            <div class="module-ipo-row"><b>P</b><span>组装并提交 Brand Config。</span></div>
+            <div class="module-ipo-row"><b>O</b><span><code>brand_config_id</code>、<code>entity_id</code>。</span></div>
+          </div>
+        </article>
+        <article class="module-chip">
+          <div class="module-chip-top">
+            <span class="module-chip-num">02 · 创建任务</span>
+          </div>
+          <h3>Diagnostic Run</h3>
+          <p>创建可追踪 run。</p>
+          <div class="module-ipo-inline">
+            <div class="module-ipo-row"><b>I</b><span><code>brand_config_id</code> 与执行参数。</span></div>
+            <div class="module-ipo-row"><b>P</b><span>创建 queued run 并启动任务。</span></div>
+            <div class="module-ipo-row"><b>O</b><span><code>run_id</code>、status、progress。</span></div>
+          </div>
+        </article>
+        <article class="module-chip">
+          <div class="module-chip-top">
+            <span class="module-chip-num">03 · 生成 QuerySet</span>
+          </div>
+          <h3>Questions</h3>
+          <p>复用或生成 active queries。</p>
+          <div class="module-ipo-inline">
+            <div class="module-ipo-row"><b>I</b><span>Brand Config 与 run 策略。</span></div>
+            <div class="module-ipo-row"><b>P</b><span>resolve / generate queryset。</span></div>
+            <div class="module-ipo-row"><b>O</b><span>active queries 与 lineage。</span></div>
+          </div>
+        </article>
+        <article class="module-chip">
+          <div class="module-chip-top">
+            <span class="module-chip-num">04 · 执行巡检</span>
+          </div>
+          <h3>Inspection</h3>
+          <p>按 query × platform 执行巡检。</p>
+          <div class="module-ipo-inline">
+            <div class="module-ipo-row"><b>I</b><span>active queries 与 platforms。</span></div>
+            <div class="module-ipo-row"><b>P</b><span>写入 results、message、progress。</span></div>
+            <div class="module-ipo-row"><b>O</b><span>inspection results。</span></div>
+          </div>
+        </article>
+        <article class="module-chip">
+          <div class="module-chip-top">
+            <span class="module-chip-num">05 · 聚合报告</span>
+          </div>
+          <h3>report_data_v1</h3>
+          <p>聚合为统一报告契约。</p>
+          <div class="module-ipo-inline">
+            <div class="module-ipo-row"><b>I</b><span>inspection results、run metadata。</span></div>
+            <div class="module-ipo-row"><b>P</b><span>聚合指标并补齐 lineage / audit。</span></div>
+            <div class="module-ipo-row"><b>O</b><span><code>report_data_v1</code>。</span></div>
+          </div>
+        </article>
+        <article class="module-chip">
+          <div class="module-chip-top">
+            <span class="module-chip-num">06 · 沉淀并消费结果</span>
+          </div>
+          <h3>Snapshot / Report</h3>
+          <p>投影 snapshot 并消费报告。</p>
+          <div class="module-ipo-inline">
+            <div class="module-ipo-row"><b>I</b><span><code>run_id</code> 与 <code>report_data_v1</code>。</span></div>
+            <div class="module-ipo-row"><b>P</b><span>持久化 snapshot，读取并适配报告。</span></div>
+            <div class="module-ipo-row"><b>O</b><span>Dashboard、报告页、HTML 导出。</span></div>
+          </div>
+        </article>
+      </div>
+
+      <section class="secondary-grid" aria-label="辅助模块">
+        <article class="secondary-card open" data-secondary="constraints">
+          <button class="secondary-toggle" type="button" aria-expanded="true">
+            <div>
+              <h3>工程约束</h3>
+              <p>只保留主链路边界。</p>
+            </div>
+            <span class="secondary-arrow">+</span>
+          </button>
+          <div class="secondary-content">
+            <div class="secondary-inner">
+              <ul>
+                <li>主链路固定为 4 个接口：<code>POST /brand-configs</code> → <code>POST /diagnostic-runs</code> → <code>GET /diagnostic-runs/{run_id}</code> → <code>GET /diagnostic-report?run_id=...</code>。</li>
+                <li>诊断报告只读真实 <code>/api/v1/geo/*</code>。</li>
+                <li>报告页按 <code>run_id</code> 读取；Dashboard / history / overview 读取 completed run 派生的 snapshot。</li>
+                <li>平台范围由请求中的 <code>platforms</code> 决定。</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="secondary-card" data-secondary="integration">
+          <button class="secondary-toggle" type="button" aria-expanded="false">
+            <div>
+              <h3>联调顺序</h3>
+              <p>按最少回溯路径，从前端入口一直打通到后端返回。</p>
+            </div>
+            <span class="secondary-arrow">+</span>
+          </button>
+          <div class="secondary-content">
+            <div class="secondary-inner">
+              <ol>
+                <li>先确认 <code>src/App.jsx</code> 中 <code>/brand/config</code> 与 <code>/report/diagnostic</code> 路由边界清晰。</li>
+                <li>再确认 <code>src/api/geo.js</code> 已覆盖品牌配置、创建任务、轮询任务、读取报告 4 个主接口。</li>
+                <li>联调后端时，优先验证 <code>backend/router/geo.py</code> 的 4 个主入口与返回结构。</li>
+                <li>任务卡住或状态异常时，先查 <code>backend/service/inspector.py</code> 的 run 生命周期与 progress 推进。</li>
+                <li>报告或看板异常时，优先检查 <code>backend/service/aggregator.py</code>、<code>src/lib/reportDataAdapter.js</code> 与 <code>backend/service/dashboard_snapshots.py</code>。</li>
+              </ol>
+            </div>
+          </div>
+        </article>
+
+        <article class="secondary-card" data-secondary="debug">
+          <button class="secondary-toggle" type="button" aria-expanded="false">
+            <div>
+              <h3>排查重点</h3>
+              <p>先看成功信号、状态集和首查文件，再决定往哪一层深入。</p>
+            </div>
+            <span class="secondary-arrow">+</span>
+          </button>
+          <div class="secondary-content">
+            <div class="secondary-inner">
+              <ul>
+                <li>Happy path 应依次拿到 <code>brand_config_id</code>、<code>run_id</code>、<code>completed</code> 状态与最终 <code>report_data_v1</code>。</li>
+                <li>Run 状态集合以当前实现为准：<code>queued</code>、<code>running</code>、<code>aggregating</code>、<code>completed</code>、<code>failed</code>；服务重启时还可能出现 <code>interrupted</code>。</li>
+                <li>巡检结果必须先回写 inspection results，再聚合并沉淀 dashboard snapshot，链路才算真正闭合。</li>
+                <li>字段显示异常先查 <code>src/lib/reportDataAdapter.js</code>，再核对 <code>backend/service/aggregator.py</code> 输出是否满足 schema。</li>
+                <li>内容生成、effect_delta 与发布归因不属于本页主链路；需要时应单独建扩展流程图。</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const secondaryCards = Array.from(document.querySelectorAll('.secondary-card'))
+
+    function toggleSecondaryCard(card) {
+      const isOpen = card.classList.contains('open')
+      const content = card.querySelector('.secondary-content')
+      const button = card.querySelector('.secondary-toggle')
+
+      if (isOpen) {
+        card.classList.remove('open')
+        button.setAttribute('aria-expanded', 'false')
+        content.style.maxHeight = '0px'
+      } else {
+        card.classList.add('open')
+        button.setAttribute('aria-expanded', 'true')
+        content.style.maxHeight = `${content.scrollHeight + 24}px`
+      }
+    }
+
+    secondaryCards.forEach(card => {
+      const content = card.querySelector('.secondary-content')
+      const button = card.querySelector('.secondary-toggle')
+      if (card.classList.contains('open')) {
+        content.style.maxHeight = `${content.scrollHeight + 24}px`
+        button.setAttribute('aria-expanded', 'true')
+      } else {
+        content.style.maxHeight = '0px'
+        button.setAttribute('aria-expanded', 'false')
+      }
+      button.addEventListener('click', () => toggleSecondaryCard(card))
+    })
+
+    window.addEventListener('resize', () => {
+      secondaryCards.forEach(card => {
+        const content = card.querySelector('.secondary-content')
+        if (card.classList.contains('open')) {
+          content.style.maxHeight = `${content.scrollHeight + 24}px`
+        }
+      })
+    })
+  </script>
+</body>
+</html>

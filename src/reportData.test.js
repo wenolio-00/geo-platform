@@ -17,7 +17,7 @@ describe('report data contract', () => {
     assert.match(html, /竞品排名与差距/)
     assert.match(html, /品牌调性分析/)
     assert.match(html, /较上期变化/)
-    assert.match(html, /自然可见度 ÷ 平均位次/)
+    assert.match(html, /query 不提及品牌时，回答中提及品牌的概率/)
     assert.match(html, /品牌配置/)
     assert.match(html, /文心一言/)
     assert.doesNotMatch(html, /<th>判断<\/th>/)
@@ -87,25 +87,26 @@ describe('report data contract', () => {
     assert.doesNotMatch(html, /暂无平台健康度/)
   })
 
-  it('normalizes V6.3 visibility and AI recommendation formulas', () => {
+  it('normalizes visibility and AI recommendation formulas', () => {
     const data = clone(fixture)
-    data.global.natural_visibility = 0.5
+    data.global.visibility = 0.5
     data.global.rank = 2
     data.global.sentiment_score = 0.6
     data.global.ai_recommend_score = 99
     const normalized = normalizeReportData(data)
-    assert.equal(computeVisibilityV63(0.5, 2), 0.25)
-    assert.equal(computeAiRecommendScoreV63(0.25, 0.6), 15)
-    assert.equal(normalized.global.visibility, 0.25)
-    assert.equal(normalized.global.ai_recommend_score, 15)
+    assert.equal(computeVisibilityV63(0.5), 0.5)
+    assert.equal(computeAiRecommendScoreV63(0.5, 0.6), 30)
+    assert.equal(normalized.global.visibility, 0.5)
+    assert.equal(normalized.global.ai_recommend_score, 30)
   })
 
-  it('sets V6.3 visibility and AI recommendation to 0 when rank is missing', () => {
+  it('keeps explicit visibility when rank is missing', () => {
     const data = clone(fixture)
+    data.global.visibility = 0.5
     data.global.rank = null
     const normalized = normalizeReportData(data)
-    assert.equal(normalized.global.visibility, 0)
-    assert.equal(normalized.global.ai_recommend_score, 0)
+    assert.equal(normalized.global.visibility, 0.5)
+    assert.equal(normalized.global.ai_recommend_score, 35)
   })
 
   it('normalizes sentiment topic change for period-over-period display', () => {
@@ -165,9 +166,46 @@ describe('report data contract', () => {
   it('applyDisplayRules truncates arrays and writes audit.truncated', () => {
     const data = normalizeReportData(fixture)
     data.sources = Array.from({ length: 8 }, (_, index) => ({ domain: `source-${index}.test`, type: 'UGC', count: index }))
+    data.source_references = Array.from({ length: 8 }, (_, index) => ({
+      url: `https://source-${index}.test/case`,
+      domain: `source-${index}.test`,
+      citation_count: index,
+      references: [{ quoted_text: `引用片段 ${index}` }],
+    }))
     const display = applyDisplayRules(data)
     assert.equal(display.display.sources.length, 6)
+    assert.equal(display.display.source_references.length, 6)
+    assert.equal(display.display.source_references[0].url, 'https://source-7.test/case')
     assert.ok(display.audit.truncated.some(item => item.section === 'sources'))
+    assert.ok(display.audit.truncated.some(item => item.section === 'source_references'))
+  })
+
+  it('renders URL-level source references with collapsible quoted text', () => {
+    const data = clone(fixture)
+    data.source_references = [
+      {
+        url: 'https://example.com/case',
+        domain: 'example.com',
+        title: '案例页',
+        type: '第三方',
+        citation_count: 2,
+        references: [
+          {
+            platform: 'DeepSeek',
+            topic: '积分商城',
+            query_id: 'q_001',
+            query_text: '金融场景积分商城管理工具有哪些？',
+            quoted_text: '兑吧适合金融场景积分商城运营。',
+          },
+        ],
+      },
+    ]
+    const normalized = normalizeReportData(data)
+    const html = generateReportHtml(data)
+    assert.equal(normalized.source_references[0].citation_count, 2)
+    assert.match(html, /高频引用网址/)
+    assert.match(html, /兑吧适合金融场景积分商城运营。/)
+    assert.match(html, /<details class="url-ref">/)
   })
 
   it('normalizeReportData records audit.missing_fields but does not fabricate business data', () => {

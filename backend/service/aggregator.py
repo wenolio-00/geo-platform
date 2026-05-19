@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 
@@ -19,16 +20,20 @@ def aggregate_report(
     completed_results = [r for r in all_results if r.get("status") == "completed"]
     failed_results = [r for r in all_results if r.get("status") == "failed"]
     total = len(completed_results)
-    platforms_requested = run.get("platforms_requested") or ["DeepSeek"]
+    platforms_requested = run.get("platforms_requested") or ["claude"]
     platforms_inspected = list(dict.fromkeys(r["platform"] for r in completed_results))
     platforms_failed = list(dict.fromkeys(r["platform"] for r in failed_results))
     expected_samples = total + len(failed_results)
+    completion_rate = _round(total / expected_samples, 4) if expected_samples else 0
+    failure_types = Counter(r.get("error_type") or "provider_error" for r in failed_results)
 
     competitor_names = [item["name"] for item in brand_config.get("competitors", []) if item.get("name")]
     brands = [brand_config["entity_name"], *competitor_names]
     brand_stats = {name: {"mentions": 0, "positions": []} for name in brands}
     platform_brand_stats: dict[str, dict[str, dict]] = {}
     platform_sample_counts = Counter()
+    platform_visibility_sample_counts = Counter()
+    platform_visibility_mentions = Counter()
     platform_sentiments = defaultdict(Counter)
     self_sentiments = Counter()
     business_line_lookup = _business_line_lookup(brand_config)
@@ -38,11 +43,24 @@ def aggregate_report(
         topic_sentiments[business_line] = Counter()
     source_counts = Counter()
     official_source_counts = Counter()
+    source_url_rows: dict[str, dict] = {}
     competitor_only = 0
+    visibility_samples = 0
+    visibility_mentions = 0
+    query_text_by_id = {
+        str(query.get("query_id")): query.get("query_text")
+        for query in queryset.get("queries", [])
+        if isinstance(query, dict) and query.get("query_id")
+    }
 
     for result in completed_results:
         platform = result.get("platform", "unknown")
         platform_sample_counts[platform] += 1
+        query_text = result.get("query_text") or query_text_by_id.get(str(result.get("query_id")))
+        counts_for_visibility = not _query_mentions_self(query_text, brand_config)
+        if counts_for_visibility:
+            visibility_samples += 1
+            platform_visibility_sample_counts[platform] += 1
         if platform not in platform_brand_stats:
             platform_brand_stats[platform] = {name: {"mentions": 0, "positions": []} for name in brands}
         mentions = result.get("parsed", {}).get("mentioned_brands", [])
@@ -74,6 +92,9 @@ def aggregate_report(
 
         if not mentioned_self and mentioned_competitor:
             competitor_only += 1
+        if counts_for_visibility and mentioned_self:
+            visibility_mentions += 1
+            platform_visibility_mentions[platform] += 1
 
         for citation in result.get("parsed", {}).get("citations", []):
             domain = citation.get("domain")
@@ -82,19 +103,26 @@ def aggregate_report(
             source_counts[domain] += 1
             if citation.get("is_official") is True:
                 official_source_counts[domain] += 1
+            _collect_source_reference(source_url_rows, result, citation)
 
         business_line = _business_line_for_result(result.get("topic"), business_line_lookup)
         if business_line:
             topic_sentiments.setdefault(business_line, Counter())
 
     self_stats = brand_stats.get(brand_config["entity_name"], {"mentions": 0, "positions": []})
-    natural_visibility = _round(self_stats["mentions"] / total) if total else 0
     avg_rank = _round(sum(self_stats["positions"]) / len(self_stats["positions"]), 2) if self_stats["positions"] else None
-    visibility = _round(natural_visibility / avg_rank) if avg_rank else 0
+    visibility = _round(visibility_mentions / visibility_samples) if visibility_samples else 0
     sentiment_score = _sentiment_score(self_sentiments)
     ai_recommend_score = _round(visibility * sentiment_score * 100, 2)
     own_citations = sum(official_source_counts.values())
-    platforms_rows = _build_platforms(platform_brand_stats, platform_sample_counts, platform_sentiments, brand_config["entity_name"])
+    platforms_rows = _build_platforms(
+        platform_brand_stats,
+        platform_sample_counts,
+        platform_visibility_sample_counts,
+        platform_visibility_mentions,
+        platform_sentiments,
+        brand_config["entity_name"],
+    )
 
     report = {
         "meta": {
@@ -113,14 +141,21 @@ def aggregate_report(
             "entity_id": brand_config["entity_id"],
             "queryset_id": queryset["queryset_id"],
             "queryset_version": queryset["queryset_version"],
+            "parent_queryset_id": queryset.get("parent_queryset_id"),
             "inspection_batch_id": run["inspection_batch_id"],
             "inspection_started_at": run.get("inspection_started_at"),
             "inspection_completed_at": run.get("inspection_completed_at"),
             "aggregation_version": "report_aggregation_v2",
             "queryset_strategy": run["queryset_strategy"],
             "queryset_source": run.get("queryset_source"),
+            "queryset_policy": run.get("queryset_policy"),
+            "queryset_governance": queryset.get("governance"),
             "inspection_mode": run["inspection_mode"],
             "platforms_requested": platforms_requested,
+            "llm_provider": "claude",
+            "web_search_enabled": run.get("web_search_enabled", True),
+            "web_search_mode": (run.get("llm_options") or {}).get("web_search_mode") or "responses_web_search",
+            "llm_options": {**(run.get("llm_options") or {}), "web_search_mode": (run.get("llm_options") or {}).get("web_search_mode") or "responses_web_search"},
             "matrix_api_request_id": queryset.get("matrix_api_request_id"),
         },
         "audit": {
@@ -137,17 +172,20 @@ def aggregate_report(
             "expected_samples": expected_samples,
             "completed_samples": total,
             "missing_samples": expected_samples - total,
+            "sample_completion_rate": completion_rate,
+            "failure_types": dict(failure_types),
+            "inspection_quality_gate": run.get("inspection_quality_gate"),
+            "visibility_eligible_samples": visibility_samples,
         },
-        "executive_summary": _summary(brand_config["entity_name"], natural_visibility, avg_rank, ai_recommend_score, total),
+        "executive_summary": _summary(brand_config["entity_name"], visibility, avg_rank, ai_recommend_score, total),
         "global": {
-            "natural_visibility": natural_visibility,
             "rank": avg_rank,
             "visibility": visibility,
             "sentiment_score": sentiment_score,
             "ai_recommend_score": ai_recommend_score,
             "own_citations": own_citations,
             "competitor_suppression_rate": _round(competitor_only / total) if total else 0,
-            "summary_text": _summary(brand_config["entity_name"], natural_visibility, avg_rank, ai_recommend_score, total),
+            "summary_text": _summary(brand_config["entity_name"], visibility, avg_rank, ai_recommend_score, total),
         },
         "competitor_ranking": _competitor_ranking(brand_stats, total),
         "platforms": platforms_rows,
@@ -161,10 +199,11 @@ def aggregate_report(
             }
             for domain, count in source_counts.most_common()
         ],
+        "source_references": _source_reference_rows(source_url_rows),
         "source_gap": [],
         "sentiment": _sentiment_rates(self_sentiments),
         "topics": _topic_rows(topic_sentiments),
-        "optimization_recommendations": _recommendations(natural_visibility, own_citations),
+        "optimization_recommendations": _recommendations(visibility, own_citations),
         "retest_plan": {
             "next_queryset_strategy": "rule_matrix_v1",
             "next_inspection_mode": "multi_platform_live_v1",
@@ -175,22 +214,146 @@ def aggregate_report(
             "queries": queryset.get("queries", []),
             "queries_count": len(queryset.get("queries", [])),
         },
-        "insights": _insights(brand_config["entity_name"], natural_visibility, avg_rank, own_citations, platforms_inspected),
+        "insights": _insights(brand_config["entity_name"], visibility, avg_rank, own_citations, platforms_inspected),
     }
-    for section in ["sources", "source_gap", "insights", "topics"]:
+    for section in ["sources", "source_references", "source_gap", "insights", "topics"]:
         if not report[section]:
             report["audit"]["empty_sections"].append(section)
     return report
 
 
-def _build_platforms(platform_brand_stats: dict, platform_sample_counts: Counter, platform_sentiments: dict, self_name: str) -> list[dict]:
+def _collect_source_reference(rows: dict[str, dict], result: dict, citation: dict) -> None:
+    url = _normalize_url(citation.get("url"))
+    if not url:
+        return
+    domain = _normalize_domain(citation.get("domain")) or _domain_from_url(url)
+    if not domain:
+        return
+    row = rows.setdefault(
+        url,
+        {
+            "url": url,
+            "domain": domain,
+            "title": citation.get("title"),
+            "type": "自有" if citation.get("is_official") is True else "第三方",
+            "is_official": citation.get("is_official") is True,
+            "references": [],
+        },
+    )
+    if not row.get("title") and citation.get("title"):
+        row["title"] = citation.get("title")
+    if citation.get("is_official") is True:
+        row["is_official"] = True
+        row["type"] = "自有"
+    answer = result.get("parsed", {}).get("answer") or result.get("raw_answer") or ""
+    row["references"].append(
+        {
+            "inspection_id": result.get("inspection_id"),
+            "platform": result.get("platform"),
+            "model": result.get("model"),
+            "query_id": result.get("query_id"),
+            "query_text": result.get("query_text"),
+            "query_pattern": result.get("query_pattern"),
+            "query_layer": result.get("query_layer"),
+            "topic": result.get("topic"),
+            "intent_type": result.get("intent_type"),
+            "quoted_text": _clean_text(citation.get("quoted_text")) or _clean_text(citation.get("answer_excerpt")) or _answer_excerpt(answer, citation),
+            "answer_excerpt": _clean_text(citation.get("answer_excerpt")) or _answer_excerpt(answer, citation),
+        }
+    )
+
+
+def _source_reference_rows(rows: dict[str, dict]) -> list[dict]:
+    output = []
+    for row in rows.values():
+        references = row.get("references") or []
+        output.append(
+            {
+                **row,
+                "citation_count": len(references),
+                "references": references,
+            }
+        )
+    return sorted(output, key=lambda item: (-item["citation_count"], item["url"]))[:6]
+
+
+def _normalize_url(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    raw = value.strip()
+    parsed = urlparse(raw)
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    scheme = parsed.scheme.lower()
+    netloc = parsed.netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    path = parsed.path.rstrip("/") if parsed.path not in {"", "/"} else ""
+    return urlunparse((scheme, netloc, path, "", parsed.query, ""))
+
+
+def _normalize_domain(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    domain = value.strip().lower()
+    return domain[4:] if domain.startswith("www.") else domain
+
+
+def _domain_from_url(url: str) -> str | None:
+    parsed = urlparse(url)
+    return _normalize_domain(parsed.netloc)
+
+
+def _clean_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = " ".join(value.split())
+    return text or None
+
+
+def _answer_excerpt(answer: object, citation: dict) -> str | None:
+    text = _clean_text(answer)
+    if not text:
+        return None
+    needles = [citation.get("url"), citation.get("domain")]
+    for needle in needles:
+        if not isinstance(needle, str) or not needle.strip():
+            continue
+        index = text.find(needle.strip())
+        if index >= 0:
+            start = max(0, index - 120)
+            end = min(len(text), index + len(needle.strip()) + 120)
+            return text[start:end]
+    return text[:240]
+
+
+def _query_mentions_self(query_text: object, brand_config: dict) -> bool:
+    if not isinstance(query_text, str) or not query_text.strip():
+        return False
+    text = query_text.casefold()
+    for term in _self_terms(brand_config):
+        normalized = str(term).strip().casefold()
+        if normalized and normalized in text:
+            return True
+    return False
+
+
+def _build_platforms(
+    platform_brand_stats: dict,
+    platform_sample_counts: Counter,
+    platform_visibility_sample_counts: Counter,
+    platform_visibility_mentions: Counter,
+    platform_sentiments: dict,
+    self_name: str,
+) -> list[dict]:
     rows = []
     for platform, stats in platform_brand_stats.items():
         p_stats = stats.get(self_name, {"mentions": 0, "positions": []})
         p_total = platform_sample_counts[platform]
         mention_rate = _round(p_stats["mentions"] / p_total) if p_total else 0
         avg_pos = _round(sum(p_stats["positions"]) / len(p_stats["positions"]), 2) if p_stats["positions"] else None
-        vis = _round(mention_rate / avg_pos) if avg_pos else 0
+        visibility_samples = platform_visibility_sample_counts[platform]
+        vis = _round(platform_visibility_mentions[platform] / visibility_samples) if visibility_samples else 0
         rows.append(
             {
                 "name": platform,
@@ -328,7 +491,7 @@ def _brand_tagline(brand_config: dict) -> str | None:
 
 def _summary(brand: str, visibility: float, avg_rank: float | None, score: float, total: int) -> str:
     rank_text = f"平均位次 {avg_rank}" if avg_rank else "尚未形成稳定位次"
-    return f"本次基于多平台真实 AI 回答完成 {total} 条查询巡检，{brand} 自然可见度为 {visibility:.1%}，{rank_text}，AI 推荐度为 {score:.1f}。"
+    return f"本次基于多平台真实 AI 回答完成 {total} 条查询巡检，{brand} 可见度为 {visibility:.1%}，{rank_text}，AI 推荐度为 {score:.1f}。"
 
 
 def _insights(brand: str, visibility: float, avg_rank: float | None, own_citations: int, platforms: list[str]) -> list[dict]:

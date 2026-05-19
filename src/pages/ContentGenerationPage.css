@@ -274,6 +274,11 @@
   color: #9f9891;
 }
 
+.cg-icon-btn.active {
+  background: rgba(74,124,89,.12);
+  color: var(--green);
+}
+
 .cg-icon-btn svg {
   width: 24px;
   height: 24px;
@@ -318,6 +323,26 @@
   color: var(--t3);
   font-size: 14px;
   line-height: 1.7;
+}
+
+.cg-copy-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(139,115,85,.08);
+  color: var(--t3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cg-copy-note.success {
+  background: rgba(74,124,89,.12);
+  color: var(--green);
+}
+
+.cg-copy-note.error {
+  background: rgba(190,65,55,.1);
+  color: #a2362f;
 }
 
 .cg-edit-actions {

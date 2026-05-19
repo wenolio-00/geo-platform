@@ -36,13 +36,35 @@ async function parseResponse(res) {
 }
 
 async function request(path, { method = 'GET', body, params, signal } = {}) {
-  const res = await fetch(`${API_BASE}${path}${buildQuery(params)}`, {
-    method,
-    signal,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  })
+  let res
+  try {
+    res = await fetch(`${API_BASE}${path}${buildQuery(params)}`, {
+      method,
+      signal,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error
+    throw new Error('无法连接后端服务，请确认后端已启动且前端代理端口配置正确。')
+  }
   return parseResponse(res)
+}
+
+export async function prefillBrandConfig(payload, options = {}) {
+  return request('/prefill/brand-config', {
+    method: 'POST',
+    body: payload,
+    signal: options.signal,
+  })
+}
+
+export async function evaluateRuleActivation(payload, options = {}) {
+  return request('/rule-activation/evaluate', {
+    method: 'POST',
+    body: payload,
+    signal: options.signal,
+  })
 }
 
 export async function createBrandConfig(payload, options = {}) {
@@ -125,6 +147,33 @@ export async function fetchContentGenerationContext({ brand_id }, options = {}) 
 
 export async function generateOptimizedDraft(payload, options = {}) {
   return request('/content/generate', {
+    method: 'POST',
+    body: payload,
+    signal: options.signal,
+  })
+}
+
+export async function saveContentVersionEdit(contentVersionId, payload, options = {}) {
+  if (!contentVersionId) throw new Error('content_version_id is required')
+  return request(`/content/versions/${encodeURIComponent(contentVersionId)}/edits`, {
+    method: 'POST',
+    body: payload,
+    signal: options.signal,
+  })
+}
+
+export async function submitContentFeedback(contentVersionId, payload, options = {}) {
+  if (!contentVersionId) throw new Error('content_version_id is required')
+  return request(`/content/versions/${encodeURIComponent(contentVersionId)}/feedback`, {
+    method: 'POST',
+    body: payload,
+    signal: options.signal,
+  })
+}
+
+export async function computeContentEffectAttribution(contentVersionId, payload = {}, options = {}) {
+  if (!contentVersionId) throw new Error('content_version_id is required')
+  return request(`/content/versions/${encodeURIComponent(contentVersionId)}/effect-attribution`, {
     method: 'POST',
     body: payload,
     signal: options.signal,

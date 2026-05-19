@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from router.geo import router as geo_router
+from service.inspector import reconcile_interrupted_runs
 
 
 load_dotenv()
@@ -20,6 +21,11 @@ app.add_middleware(
 )
 
 app.include_router(geo_router)
+
+
+@app.on_event("startup")
+async def reconcile_diagnostic_runs_on_startup() -> None:
+    reconcile_interrupted_runs()
 
 
 @app.get("/health")

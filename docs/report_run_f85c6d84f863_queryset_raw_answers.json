@@ -1,0 +1,117 @@
+{
+  "run_id": "run_f85c6d84f863",
+  "report_id": "report_ba1ee1f63928",
+  "queryset_source_file": "backend/storage/diagnostic_runs.json",
+  "raw_answers_source_file": "backend/storage/inspection_results.json",
+  "queryset": {
+    "queryset_id": "qs_d7ed219e0fe0",
+    "queryset_version": "rule_matrix_v1",
+    "matrix_api_request_id": "mx_local_7303908cda5e",
+    "queries": [
+      {
+        "query_id": "q_001",
+        "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+        "query_layer": "core_anchor",
+        "run_scope": "production",
+        "metric_scope": "core_trend",
+        "topic": "积分商城管理工具",
+        "query_pattern": "category_rec",
+        "intent_type": "vendor_recommendation",
+        "related_competitors": [
+          "有赞",
+          "微盟",
+          "星耀"
+        ]
+      }
+    ]
+  },
+  "raw_answers": [
+    {
+      "inspection_id": "insp_9d2ecb33e73a",
+      "status": "completed",
+      "platform": "豆包",
+      "model": "doubao-seed-2-0-mini-260215",
+      "query_id": "q_001",
+      "query_text": "金融场景里，积分商城管理工具有哪些成熟供应商？",
+      "query_pattern": "category_rec",
+      "query_layer": "core_anchor",
+      "topic": "积分商城管理工具",
+      "intent_type": "vendor_recommendation",
+      "request_at": "2026-05-13T03:22:38.119116+00:00",
+      "returned_at": "2026-05-13T03:23:10.558172+00:00",
+      "raw_answer": "{\n    \"answer\": \"在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba），以及有赞、微盟、星耀、灵智。\",\n    \"mentioned_brands\": [\n        {\n            \"name\": \"杭州兑吧网络科技有限公司\",\n            \"aliases_matched\": [\"兑吧\", \"兑吧网络\", \"Duiba\"],\n            \"position\": 1,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba）\"\n        },\n        {\n            \"name\": \"有赞\",\n            \"aliases_matched\": [\"有赞\"],\n            \"position\": 2,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"微盟\",\n            \"aliases_matched\": [\"微盟\"],\n            \"position\": 3,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"星耀\",\n            \"aliases_matched\": [\"星耀\"],\n            \"position\": 4,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        },\n        {\n            \"name\": \"灵智\",\n            \"aliases_matched\": [\"灵智\"],\n            \"position\": 5,\n            \"mention_context\": \"standard_listing\",\n            \"sentiment\": \"neutral\",\n            \"evidence\": \"以及有赞、微盟、星耀、灵智。\"\n        }\n    ],\n    \"citations\": [],\n    \"parse_confidence\": \"high\",\n    \"notes\": \"\"\n}",
+      "parsed": {
+        "answer": "在金融场景中，成熟的积分商城管理工具供应商包括杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba），以及有赞、微盟、星耀、灵智。",
+        "mentioned_brands": [
+          {
+            "name": "杭州兑吧网络科技有限公司",
+            "aliases_matched": [
+              "兑吧",
+              "兑吧网络",
+              "Duiba"
+            ],
+            "position": 1,
+            "mention_context": "standard_listing",
+            "sentiment": "neutral",
+            "evidence": "杭州兑吧网络科技有限公司（其品牌别名有兑吧、兑吧网络、Duiba）"
+          },
+          {
+            "name": "有赞",
+            "aliases_matched": [
+              "有赞"
+            ],
+            "position": 2,
+            "mention_context": "standard_listing",
+            "sentiment": "neutral",
+            "evidence": "以及有赞、微盟、星耀、灵智。"
+          },
+          {
+            "name": "微盟",
+            "aliases_matched": [
+              "微盟"
+            ],
+            "position": 3,
+            "mention_context": "standard_listing",
+            "sentiment": "neutral",
+            "evidence": "以及有赞、微盟、星耀、灵智。"
+          },
+          {
+            "name": "星耀",
+            "aliases_matched": [
+              "星耀"
+            ],
+            "position": 4,
+            "mention_context": "standard_listing",
+            "sentiment": "neutral",
+            "evidence": "以及有赞、微盟、星耀、灵智。"
+          },
+          {
+            "name": "灵智",
+            "aliases_matched": [
+              "灵智"
+            ],
+            "position": 5,
+            "mention_context": "standard_listing",
+            "sentiment": "neutral",
+            "evidence": "以及有赞、微盟、星耀、灵智。"
+          }
+        ],
+        "citations": [],
+        "parse_confidence": "high",
+        "notes": ""
+      },
+      "usage": {
+        "completion_tokens": 2739,
+        "prompt_tokens": 463,
+        "total_tokens": 3202,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2245
+        }
+      },
+      "error": null
+    }
+  ]
+}

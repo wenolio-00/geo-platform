@@ -20,6 +20,8 @@ def create_brand_config(payload: BrandConfigCreate) -> dict:
             "topic_name": (topic.topic_name or "").strip(),
             "business_line": (topic.business_line or "").strip(),
             "priority": topic.priority,
+            "pain_point": (topic.pain_point or "").strip() or None,
+            "goal": (topic.goal or "").strip() or None,
         }
         for topic in payload.topics
         if (topic.topic_name or topic.business_line)

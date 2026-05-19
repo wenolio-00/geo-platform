@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { createBrandConfig, startDiagnosticRun } from "../api/geo.js";
+import { createBrandConfig, prefillBrandConfig, startDiagnosticRun } from "../api/geo.js";
 
 const T = {
   bg: "#fbfbfd", surface: "#ffffff", surfaceAlt: "#f5f5f7",
@@ -81,9 +81,9 @@ const DUIBA = {
   entity_aliases:["兑吧","兑吧网络","Duiba"],
   industry_segments:["金融场景","互联网App运营","内容/媒体App"],
   topics:[
-    {topic_name:"积分商城管理工具",business_line:"积分商城",priority:1},
-    {topic_name:"会员权益运营平台",business_line:"会员权益",priority:2},
-    {topic_name:"互动广告接入",business_line:"互动广告",priority:3},
+    {topic_name:"积分商城管理工具",business_line:"积分商城",priority:1,pain_point:"用户活跃度下降、积分消耗率低",goal:"提升 DAU 和积分消耗率"},
+    {topic_name:"会员权益运营平台",business_line:"会员权益",priority:2,pain_point:"会员权益感知弱、流失率高",goal:"提高会员续订率和活跃度"},
+    {topic_name:"互动广告接入",business_line:"互动广告",priority:3,pain_point:"广告变现效率低、用户体验冲突",goal:"提升变现效率同时保障用户体验"},
   ],
   competitors:[
     {name:"有赞",aliases:["Youzan"],business_line:"会员权益",category:"泛电商 SaaS"},
@@ -95,9 +95,15 @@ const DUIBA = {
 
 const EMPTY = {
   entity_name:"", entity_aliases:[], industry_segments:[],
-  topics:[{topic_name:"",business_line:"",priority:1}],
+  topics:[{topic_name:"",business_line:"",priority:1,pain_point:"",goal:""}],
   competitors:[{name:"",aliases:[],business_line:"",category:""}],
 };
+
+const QUERYSET_POLICY_OPTIONS = [
+  { value:"reuse_latest", title:"默认复用上次 QuerySet", desc:"适合不定期回检，保持指标口径可比。" },
+  { value:"create_new_version", title:"生成新 QuerySet 版本", desc:"适合品牌配置或业务重点变化，并在报告 lineage 中记录变更原因。" },
+];
+const DEFAULT_INSPECTION_PLATFORMS = [];
 
 /* ── Smart Prefill ── */
 function SmartPrefill({ onPrefill }) {
@@ -221,12 +227,12 @@ function StepCompany({ data, set }) {
 
 /* ── Step 2: 业务线 ── */
 function StepTopics({ topics, set }) {
-  const add=()=>set([...topics,{topic_name:"",business_line:"",priority:topics.length+1}]);
+  const add=()=>set([...topics,{topic_name:"",business_line:"",priority:topics.length+1,pain_point:"",goal:""}]);
   const rm=i=>set(topics.filter((_,j)=>j!==i));
   const upd=(i,k,v)=>set(topics.map((t,j)=>j===i?{...t,[k]:v}:t));
   return <>
     {topics.map((t,i)=>(
-      <div key={i} style={{ display:"grid",gridTemplateColumns:"1fr 1fr 72px 40px",gap:14,alignItems:"end",
+      <div key={i} style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 40px",gap:14,alignItems:"end",
         marginBottom:14,padding:"18px 20px",background:T.surfaceAlt,borderRadius:16,border:`1px solid ${T.borderLt}` }}>
         <Field label={`业务线 ${i+1}`} sub="业务线全称" style={{margin:0}}>
           <Input value={t.topic_name} onChange={v=>upd(i,"topic_name",v)} placeholder="积分商城管理工具" />
@@ -236,6 +242,12 @@ function StepTopics({ topics, set }) {
         </Field>
         <Field label="排序" sub={"\u00A0"} style={{margin:0}}>
           <Input type="number" value={t.priority} onChange={v=>upd(i,"priority",parseInt(v)||0)} style={{textAlign:"center"}} />
+        </Field>
+        <Field label="痛点" sub="业务痛点" style={{margin:0}}>
+          <Input value={t.pain_point} onChange={v=>upd(i,"pain_point",v)} placeholder="如：用户流失严重" />
+        </Field>
+        <Field label="目标" sub="业务目标" style={{margin:0}}>
+          <Input value={t.goal} onChange={v=>upd(i,"goal",v)} placeholder="如：提升用户留存" />
         </Field>
         <div style={{paddingBottom:2}}>
           <button onClick={()=>rm(i)} style={{ width:38,height:38,borderRadius:10,border:`1px solid ${T.borderLt}`,
@@ -309,6 +321,8 @@ export default function BrandConfigPage() {
   const [data,setData]=useState(EMPTY);
   const [submitting,setSubmitting]=useState(false);
   const [submitError,setSubmitError]=useState("");
+  const [querysetPolicy,setQuerysetPolicy]=useState("reuse_latest");
+  const [querysetChangeReason,setQuerysetChangeReason]=useState("scheduled_retest");
   const navigate = useNavigate();
 
   const handlePrefill=fill=>setData(prev=>({...prev,...fill}));
@@ -321,6 +335,8 @@ export default function BrandConfigPage() {
         topic_name:String(topic.topic_name||"").trim(),
         business_line:String(topic.business_line||"").trim(),
         priority:Number(topic.priority)||null,
+        pain_point:String(topic.pain_point||"").trim()||null,
+        goal:String(topic.goal||"").trim()||null,
       }))
       .filter(topic=>topic.topic_name||topic.business_line),
     competitors:data.competitors
@@ -345,16 +361,25 @@ export default function BrandConfigPage() {
       const created=await createBrandConfig(payload);
       const brandConfigId=created?.brand_config_id;
       if(!brandConfigId) throw new Error("后端未返回 brand_config_id");
-      const run=await startDiagnosticRun({
+      const runPayload={
         brand_config_id:brandConfigId,
         queryset_strategy:"rule_matrix_v1",
         queryset_source:"matrix_api_v1",
+        queryset_policy:querysetPolicy,
+        queryset_change_reason:querysetChangeReason.trim() || (querysetPolicy==="reuse_latest" ? "scheduled_retest" : "brand_config_update"),
         inspection_mode:"multi_platform_live_v1",
-        platforms:["豆包"],
-      });
+        web_search_enabled:true,
+      };
+      if(DEFAULT_INSPECTION_PLATFORMS.length){
+        runPayload.platforms=DEFAULT_INSPECTION_PLATFORMS;
+      }
+      const run=await startDiagnosticRun(runPayload);
       const runId=run?.run_id;
       if(!runId) throw new Error("后端未返回 run_id");
-      navigate(`/report/diagnostic?run_id=${encodeURIComponent(runId)}`);
+      const reportUrl=`/report/diagnostic?run_id=${encodeURIComponent(runId)}`;
+      window.localStorage.setItem("geo.latestDiagnosticReportUrl", reportUrl);
+      window.dispatchEvent(new Event("geo:diagnostic-report-updated"));
+      navigate(reportUrl);
     }catch(error){
       setSubmitError(error?.message||"诊断任务启动失败，请检查后端服务。");
     }finally{
@@ -429,6 +454,31 @@ export default function BrandConfigPage() {
             background:"#fff1f0",border:"1px solid #ffccc7",color:"#a8071a",
             fontSize:13,lineHeight:1.5 }}>
             {submitError}
+          </div>
+        )}
+        {step===STEPS.length-1&&(
+          <div style={{ marginTop:22,padding:"16px",borderRadius:18,
+            background:T.surface,border:`1px solid ${T.borderLt}` }}>
+            <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:10 }}>QuerySet 版本治理</div>
+            <div style={{ display:"grid",gap:10 }}>
+              {QUERYSET_POLICY_OPTIONS.map(option=>(
+                <label key={option.value} style={{ display:"flex",gap:10,padding:"12px",borderRadius:14,
+                  border:`1px solid ${querysetPolicy===option.value?T.accent:T.borderLt}`,
+                  background:querysetPolicy===option.value?T.accentBg:T.surfaceAlt,cursor:"pointer" }}>
+                  <input type="radio" checked={querysetPolicy===option.value} disabled={submitting}
+                    onChange={()=>setQuerysetPolicy(option.value)} />
+                  <span>
+                    <span style={{ display:"block",fontSize:13,fontWeight:600,color:T.text }}>{option.title}</span>
+                    <span style={{ display:"block",fontSize:12,color:T.textSec,lineHeight:1.45,marginTop:2 }}>{option.desc}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <Field label="变更原因" sub="会写入 report lineage，便于追踪回检或新版本生成原因。" style={{ marginTop:14,marginBottom:0 }}>
+              <Input value={querysetChangeReason} disabled={submitting}
+                onChange={setQuerysetChangeReason}
+                placeholder={querysetPolicy==="reuse_latest"?"scheduled_retest":"brand_config_update"} />
+            </Field>
           </div>
         )}
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",

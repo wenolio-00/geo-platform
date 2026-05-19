@@ -43,5 +43,9 @@ class JsonStore:
 
 brand_configs_store = JsonStore("brand_configs.json")
 runs_store = JsonStore("diagnostic_runs.json")
+querysets_store = JsonStore("querysets.json")
 inspection_results_store = JsonStore("inspection_results.json")
 brand_dashboard_snapshots_store = JsonStore("brand_dashboard_snapshots.json")
+content_versions_store = JsonStore("content_versions.json")
+content_feedback_store = JsonStore("content_feedback.json")
+effect_attribution_store = JsonStore("effect_attribution.json")

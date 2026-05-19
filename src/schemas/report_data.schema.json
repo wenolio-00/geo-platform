@@ -72,6 +72,7 @@
       "items": { "$ref": "#/definitions/metricDefinition" }
     },
     "competitor_ranking": { "type": "array", "items": { "$ref": "#/definitions/competitor" } },
+    "topic_platform_visibility": { "type": "array", "items": { "$ref": "#/definitions/topicPlatformVisibility" } },
     "platforms": { "type": "array", "items": { "$ref": "#/definitions/platform" } },
     "sources": { "type": "array", "items": { "$ref": "#/definitions/source" } },
     "source_references": { "type": "array", "items": { "$ref": "#/definitions/sourceReference" } },
@@ -129,8 +130,38 @@
       "required": ["name", "mention_rate", "is_self"],
       "properties": {
         "name": { "type": "string" },
+        "visibility": { "type": ["number", "null"] },
         "mention_rate": { "type": ["number", "null"] },
+        "rank": { "type": ["number", "null"] },
         "is_self": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "topicPlatformVisibility": {
+      "type": "object",
+      "required": ["topic", "platforms"],
+      "properties": {
+        "topic": { "type": "string" },
+        "platforms": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/topicPlatformVisibilityPlatform" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "topicPlatformVisibilityPlatform": {
+      "type": "object",
+      "required": ["platform"],
+      "properties": {
+        "platform": { "type": "string" },
+        "samples": { "type": ["number", "null"] },
+        "visibility_eligible_samples": { "type": ["number", "null"] },
+        "visibility": { "type": ["number", "null"] },
+        "competitor_rank": { "type": ["number", "null"] },
+        "competitors": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/competitor" }
+        }
       },
       "additionalProperties": true
     },

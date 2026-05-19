@@ -20,28 +20,81 @@
   "competitor_ranking": [
     {
       "name": "兑吧",
+      "visibility": 0.681,
       "mention_rate": 0.681,
       "is_self": true
     },
     {
       "name": "灵智",
+      "visibility": 0.304,
       "mention_rate": 0.304,
       "is_self": false
     },
     {
       "name": "有赞",
+      "visibility": 0.297,
       "mention_rate": 0.297,
       "is_self": false
     },
     {
       "name": "星耀",
+      "visibility": 0.297,
       "mention_rate": 0.297,
       "is_self": false
     },
     {
       "name": "微盟",
+      "visibility": 0.261,
       "mention_rate": 0.261,
       "is_self": false
+    }
+  ],
+  "topic_platform_visibility": [
+    {
+      "topic": "积分商城",
+      "platforms": [
+        {
+          "platform": "DeepSeek",
+          "samples": 10,
+          "visibility_eligible_samples": 8,
+          "visibility": 0.625,
+          "competitor_rank": 1,
+          "competitors": [
+            { "name": "兑吧", "visibility": 0.625, "mention_rate": 0.7, "rank": 1, "is_self": true },
+            { "name": "灵智", "visibility": 0.375, "mention_rate": 0.4, "rank": 2, "is_self": false },
+            { "name": "有赞", "visibility": 0.25, "mention_rate": 0.3, "rank": 3, "is_self": false }
+          ]
+        },
+        {
+          "platform": "Kimi",
+          "samples": 9,
+          "visibility_eligible_samples": 7,
+          "visibility": 0.5714,
+          "competitor_rank": 2,
+          "competitors": [
+            { "name": "灵智", "visibility": 0.7143, "mention_rate": 0.6667, "rank": 1, "is_self": false },
+            { "name": "兑吧", "visibility": 0.5714, "mention_rate": 0.6667, "rank": 2, "is_self": true },
+            { "name": "星耀", "visibility": 0.2857, "mention_rate": 0.3333, "rank": 3, "is_self": false }
+          ]
+        }
+      ]
+    },
+    {
+      "topic": "会员权益",
+      "platforms": [
+        {
+          "platform": "通义千问",
+          "samples": 8,
+          "visibility_eligible_samples": 6,
+          "visibility": 0.5,
+          "competitor_rank": 2,
+          "competitors": [
+            { "name": "有赞", "visibility": 0.6667, "mention_rate": 0.75, "rank": 1, "is_self": false },
+            { "name": "兑吧", "visibility": 0.5, "mention_rate": 0.625, "rank": 2, "is_self": true },
+            { "name": "微盟", "visibility": 0.3333, "mention_rate": 0.5, "rank": 3, "is_self": false }
+          ]
+        }
+      ]
     }
   ],
   "platforms": [

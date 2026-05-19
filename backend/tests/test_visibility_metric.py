@@ -91,6 +91,16 @@ def test_visibility_counts_brand_free_queries_only():
     assert report["audit"]["visibility_eligible_samples"] == 2
     assert report["global"]["visibility"] == 0.5
     assert report["platforms"][0]["visibility"] == 0.5
+    assert report["competitor_ranking"][0]["name"] == "兑吧"
+    assert report["competitor_ranking"][0]["visibility"] == 0.5
+    assert report["competitor_ranking"][1]["name"] == "有赞"
+    assert report["competitor_ranking"][1]["visibility"] == 0.5
+    topic_visibility = report["topic_platform_visibility"][0]
+    assert topic_visibility["topic"] == "积分商城"
+    assert topic_visibility["platforms"][0]["platform"] == "DeepSeek"
+    assert topic_visibility["platforms"][0]["visibility_eligible_samples"] == 2
+    assert topic_visibility["platforms"][0]["visibility"] == 0.5
+    assert topic_visibility["platforms"][0]["competitor_rank"] == 1
     assert "可见度为 50.0%" in report["executive_summary"]
 
 

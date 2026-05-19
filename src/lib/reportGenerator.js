@@ -12,6 +12,8 @@ body{font-family:var(--f);background:var(--surface);color:var(--t1);font-size:15
 
 const SOURCE_REFERENCE_CSS = `.url-list{display:flex;flex-direction:column;background:var(--card);border-radius:var(--r2);box-shadow:var(--sh);overflow:hidden;margin-bottom:14px}.url-ref{border-bottom:1px solid var(--sep2)}.url-ref:last-child{border-bottom:none}.url-ref summary{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;list-style:none}.url-ref summary::-webkit-details-marker{display:none}.url-ref summary::after{content:"+";color:var(--t4);font-family:var(--fm);font-weight:700;margin-left:4px}.url-ref[open] summary::after{content:"-"}.url-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.url-main a{color:var(--t2);font-size:13.5px;font-weight:600;overflow-wrap:anywhere;text-decoration:none}.url-main small{color:var(--t4);font-size:10.5px}.url-ref-body{padding:0 18px 14px 48px;display:flex;flex-direction:column;gap:8px}.url-quote{border-left:2px solid rgba(46,95,163,.22);padding:8px 0 8px 12px}.url-meta{color:var(--primary);font-size:10.5px;font-weight:700;letter-spacing:.04em;margin-bottom:4px}.url-quote p{color:var(--t2);font-size:13px;line-height:1.6;margin:0}.url-query{color:var(--t4);font-size:11px;line-height:1.5;margin-top:4px}`
 
+const VISIBILITY_CSS = `.topic-vis-list,.comp-bars{display:flex;flex-direction:column;gap:12px}.topic-vis,.comp-bars{background:var(--card);border-radius:var(--r2);box-shadow:var(--sh);overflow:hidden}.topic-vis-h{padding:14px 18px;border-bottom:1px solid var(--sep);color:var(--t1);font-size:14px;font-weight:700}.topic-vis-platforms{display:flex;flex-direction:column}.topic-vis-row{display:grid;grid-template-columns:minmax(130px,1.2fr) minmax(120px,1fr) 70px 58px minmax(140px,1.1fr);gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--sep2)}.topic-vis-row:last-child{border-bottom:none}.topic-vis-main strong,.comp-name{color:var(--t1);font-size:13.5px}.topic-vis-main small{display:block;color:var(--t4);font-size:10.5px;margin-top:2px}.topic-vis-metric,.topic-vis-rank,.comp-value,.comp-rank{font-family:var(--fm);font-size:12px;font-weight:700;color:var(--primary)}.topic-vis-ctx{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.topic-vis-ctx span,.comp-type{border-radius:4px;background:rgba(0,0,0,.045);color:var(--neutral);font-size:10.5px;font-weight:600;padding:2px 6px;white-space:nowrap}.comp-bars{gap:0}.comp-row{display:grid;grid-template-columns:48px minmax(110px,1fr) minmax(180px,2.2fr) 76px 54px;gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--sep2)}.comp-row:last-child{border-bottom:none}.comp-row.self{background:rgba(46,95,163,.035)}.comp-track{height:10px;border-radius:999px;background:rgba(46,95,163,.10);overflow:hidden}.comp-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--primary),#5F8ED8)}.comp-row.self .comp-fill{background:linear-gradient(90deg,var(--green),#61A87B)}@media(max-width:760px){.topic-vis-row,.comp-row{grid-template-columns:1fr}.topic-vis-ctx{justify-content:flex-start}}`
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -57,6 +59,10 @@ function barColorClass(rate) {
   if (rate >= 0.5) return 'g'
   if (rate > 0) return 'a'
   return 'r'
+}
+
+function percentWidth(value) {
+  return finiteNumber(value) ? Math.max(0, Math.min(100, value * 100)) : 0
 }
 
 function sourceTypeBadge(type) {
@@ -111,9 +117,9 @@ function buildOverview(data) {
   const ranking = data.display.competitor_ranking
   const selfRank = ranking.findIndex(row => row.is_self) + 1
   const rankHtml = ranking.length
-    ? ranking.map((row, index) => `<div class="rank-row ${row.is_self ? 'self' : ''}"><span class="idx">${index + 1}</span><span class="nm">${escapeHtml(row.name)}</span><span class="vl">${displayPercent(row.mention_rate, { nullText: '未采集' })}</span></div>`).join('')
+    ? ranking.map((row, index) => `<div class="rank-row ${row.is_self ? 'self' : ''}"><span class="idx">${index + 1}</span><span class="nm">${escapeHtml(row.name)}</span><span class="vl">${displayPercent(row.visibility ?? row.mention_rate, { nullText: '未采集' })}</span></div>`).join('')
     : emptyState('暂无竞品排名', '聚合数据未提供 competitor_ranking。')
-  return `<div class="ov"><div class="ov-card"><div class="ov-brow">全局排名</div><div><span class="rank-n">${selfRank || '—'}</span><span class="rank-u">/ ${ranking.length || '—'}</span></div><div class="rank-sub">按品牌提及率排序</div><div class="rank-rows">${rankHtml}</div></div><div class="ov-card"><div class="ov-brow">品牌健康评分</div>${buildGauge(data.global.ai_recommend_score)}</div></div>`
+  return `<div class="ov"><div class="ov-card"><div class="ov-brow">全局排名</div><div><span class="rank-n">${selfRank || '—'}</span><span class="rank-u">/ ${ranking.length || '—'}</span></div><div class="rank-sub">按品牌可见度排序</div><div class="rank-rows">${rankHtml}</div></div><div class="ov-card"><div class="ov-brow">品牌健康评分</div>${buildGauge(data.global.ai_recommend_score)}</div></div>`
 }
 
 function buildFactorStrip(global) {
@@ -177,18 +183,37 @@ function buildPlatformTable(data) {
   return `<div class="tw"><table><thead><tr><th>平台</th><th>提及率</th><th>健康评分</th><th>自有引用</th><th>竞品排名</th></tr></thead><tbody>${rows}</tbody></table></div>`
 }
 
+function buildTopicPlatformVisibility(data) {
+  const topics = data.display.topic_platform_visibility || []
+  if (!topics.length) return emptyState('暂无分话题可见度', '聚合数据未提供 topic_platform_visibility。')
+  const rows = topics.map(topic => {
+    const platforms = topic.platforms.map(platform => {
+      const topCompetitors = platform.competitors.filter(row => !row.is_self).slice(0, 2)
+      const competitors = topCompetitors.length
+        ? topCompetitors.map(row => `<span>${escapeHtml(row.name)} ${displayPercent(row.visibility)}</span>`).join('')
+        : '<span>暂无竞品数据</span>'
+      return `<div class="topic-vis-row"><div class="topic-vis-main"><strong>${escapeHtml(platform.platform)}</strong><small>${displayValue(platform.samples, { decimals: 0 })} 条样本 · ${displayValue(platform.visibility_eligible_samples, { decimals: 0 })} 条可见度样本</small></div><div class="bar"><div class="bar-f ${barColorClass(platform.visibility)}" style="width:${percentWidth(platform.visibility).toFixed(1)}%"></div></div><div class="topic-vis-metric">${displayPercent(platform.visibility)}</div><div class="topic-vis-rank">${isNullishValue(platform.competitor_rank) ? '未采集' : `#${displayValue(platform.competitor_rank, { decimals: 0 })}`}</div><div class="topic-vis-ctx">${competitors}</div></div>`
+    }).join('')
+    return `<div class="topic-vis"><div class="topic-vis-h">${escapeHtml(topic.topic)}</div><div class="topic-vis-platforms">${platforms}</div></div>`
+  }).join('')
+  return `<div class="topic-vis-list">${rows}</div>`
+}
+
 function buildCompetitors(data) {
   const rows = data.display.competitor_ranking
   if (!rows.length) return emptyState('暂无竞品排名', '聚合数据未提供 competitor_ranking。')
-  const trs = rows.map((row, index) => `<tr><td><span class="c ${row.is_self ? 'blue' : 'muted'}">#${index + 1}</span></td><td><strong>${escapeHtml(row.name)}</strong></td><td>${displayPercent(row.mention_rate)}</td><td>${row.is_self ? '本品牌' : '竞品'}</td></tr>`).join('')
-  return `<div class="tw"><table><thead><tr><th>排名</th><th>品牌</th><th>提及率</th><th>类型</th></tr></thead><tbody>${trs}</tbody></table></div>`
+  const bars = rows.map((row, index) => {
+    const value = row.visibility ?? row.mention_rate
+    return `<div class="comp-row ${row.is_self ? 'self' : ''}"><span class="comp-rank">#${index + 1}</span><span class="comp-name">${escapeHtml(row.name)}</span><div class="comp-track"><div class="comp-fill" style="width:${percentWidth(value).toFixed(1)}%"></div></div><span class="comp-value">${displayPercent(value)}</span><span class="comp-type">${row.is_self ? '本品牌' : '竞品'}</span></div>`
+  }).join('')
+  return `<div class="comp-bars">${bars}</div>`
 }
 
 function buildSentiment(data) {
   if (!data.sentiment && !data.display.topics.length) return emptyState('暂无调性数据', '聚合数据未提供 sentiment 或 topics。')
   const sentiment = data.sentiment || {}
   const topicRows = data.display.topics.map(topic => `<tr><td><strong>${escapeHtml(topic.name)}</strong></td><td style="color:var(--green)">${displayValue(topic.positive, { decimals: 0, suffix: '%' })}</td><td style="color:var(--t1)">${displayValue(topic.neutral, { decimals: 0, suffix: '%' })}</td><td style="color:var(--amberText)">${displayValue(topic.negative, { decimals: 0, suffix: '%' })}</td><td>${verdictBadge(topic.change ?? topic.verdict)}</td></tr>`).join('')
-  const topicTable = topicRows ? `<div class="tw sent-table"><table><thead><tr><th>业务线</th><th>正面</th><th>中立</th><th>负面</th><th>较上期变化</th></tr></thead><tbody>${topicRows}</tbody></table></div>` : emptyState('暂无话题调性')
+  const topicTable = topicRows ? `<div class="tw sent-table"><table><thead><tr><th>话题</th><th>正面</th><th>中立</th><th>负面</th><th>较上期变化</th></tr></thead><tbody>${topicRows}</tbody></table></div>` : emptyState('暂无话题调性')
   return `<div class="sent-kpis"><div class="sent-kpi"><div class="sent-kpi-v" style="color:var(--green)">${displayPercent(sentiment.positive_rate, { decimals: 0 })}</div><div class="sent-kpi-l">正面推荐</div></div><div class="sent-kpi"><div class="sent-kpi-v" style="color:var(--t1)">${displayPercent(sentiment.neutral_rate, { decimals: 0 })}</div><div class="sent-kpi-l">中立列举</div></div><div class="sent-kpi"><div class="sent-kpi-v" style="color:var(--mink)">${displayPercent(sentiment.negative_rate, { decimals: 0 })}</div><div class="sent-kpi-l">负面评价</div></div><div class="sent-kpi"><div class="sent-kpi-v" style="color:var(--primary)">${displayValue(data.global.ai_recommend_score, { decimals: 0 })}</div><div class="sent-kpi-l">AI 推荐度</div></div></div>${topicTable}`
 }
 
@@ -214,7 +239,7 @@ export function generateReportHtml(input) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(brandName)} · GEO 诊断报告</title>
-<style>${REPORT_HTML_CSS}${SOURCE_REFERENCE_CSS}</style>
+<style>${REPORT_HTML_CSS}${SOURCE_REFERENCE_CSS}${VISIBILITY_CSS}</style>
 </head>
 <body><div class="page">
 <nav class="nav"><div class="nav-l">GEO 诊断报告</div><div class="nav-r"><span>报告生成器</span><span class="nav-date">${escapeHtml(reportDate)}</span></div></nav>
@@ -225,6 +250,7 @@ ${buildFactorStrip(data.global)}
 ${section('01', '关键问题&优化建议', buildInsights(data))}
 ${section('02', '信源引用情况', buildSources(data))}
 ${section('03', '六平台健康度', buildPlatformTable(data))}
+${section('03A', '分话题可见度表现', buildTopicPlatformVisibility(data))}
 ${section('04', '竞品排名与差距', buildCompetitors(data))}
 ${section('05', '品牌调性分析', buildSentiment(data))}
 ${section('06', '品牌配置', buildBrandConfig(data.brand_config))}

@@ -62,10 +62,10 @@ def _smart_prefill_user_prompt(brief: dict[str, Any]) -> str:
   "industry_segments": ["行业细分1", "行业细分2"],
   "topics": [
     {{
-      "topic_name": "业务线全称",
-      "business_line": "业务线简称",
+      "topic_name": "话题全称",
+      "business_line": "话题简称",
       "priority": 1,
-      "pain_point": "业务痛点",
+      "pain_point": "用户通用痛点",
       "goal": "业务目标"
     }}
   ],
@@ -73,7 +73,7 @@ def _smart_prefill_user_prompt(brief: dict[str, Any]) -> str:
     {{
       "name": "竞品名称",
       "aliases": ["竞品别名"],
-      "business_line": "相关业务线",
+      "business_line": "相关话题",
       "category": "竞品类别"
     }}
   ]

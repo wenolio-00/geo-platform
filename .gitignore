@@ -7,6 +7,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
 node_modules
 dist
 dist-ssr

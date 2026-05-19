@@ -116,8 +116,8 @@ function SmartPrefill({ onPrefill }) {
   const fileRef=useRef(null);
 
   const STS=[{label:"抓取页面内容",pct:18},{label:"识别企业信息",pct:35},
-    {label:"提取业务线",pct:55},{label:"匹配竞品",pct:75},{label:"验证与填充",pct:100}];
-  const FS=["企业名称","品牌别名","行业细分","业务线配置","竞品识别"];
+    {label:"提取话题",pct:55},{label:"匹配竞品",pct:75},{label:"验证与填充",pct:100}];
+  const FS=["企业名称","品牌别名","行业细分","话题配置","竞品识别"];
 
   const start=async()=>{
     if(!url&&!file)return;
@@ -225,7 +225,7 @@ function StepCompany({ data, set }) {
   </>;
 }
 
-/* ── Step 2: 业务线 ── */
+/* ── Step 2: 话题 ── */
 function StepTopics({ topics, set }) {
   const add=()=>set([...topics,{topic_name:"",business_line:"",priority:topics.length+1,pain_point:"",goal:""}]);
   const rm=i=>set(topics.filter((_,j)=>j!==i));
@@ -234,7 +234,7 @@ function StepTopics({ topics, set }) {
     {topics.map((t,i)=>(
       <div key={i} style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 40px",gap:14,alignItems:"end",
         marginBottom:14,padding:"18px 20px",background:T.surfaceAlt,borderRadius:16,border:`1px solid ${T.borderLt}` }}>
-        <Field label={`业务线 ${i+1}`} sub="业务线全称" style={{margin:0}}>
+        <Field label={`话题 ${i+1}`} sub="话题全称" style={{margin:0}}>
           <Input value={t.topic_name} onChange={v=>upd(i,"topic_name",v)} placeholder="积分商城管理工具" />
         </Field>
         <Field label="标签" sub="简称标签" style={{margin:0}}>
@@ -243,7 +243,7 @@ function StepTopics({ topics, set }) {
         <Field label="排序" sub={"\u00A0"} style={{margin:0}}>
           <Input type="number" value={t.priority} onChange={v=>upd(i,"priority",parseInt(v)||0)} style={{textAlign:"center"}} />
         </Field>
-        <Field label="痛点" sub="业务痛点" style={{margin:0}}>
+        <Field label="用户通用痛点" sub="用户通用痛点" style={{margin:0}}>
           <Input value={t.pain_point} onChange={v=>upd(i,"pain_point",v)} placeholder="如：用户流失严重" />
         </Field>
         <Field label="目标" sub="业务目标" style={{margin:0}}>
@@ -262,7 +262,7 @@ function StepTopics({ topics, set }) {
       border:`1.5px dashed ${T.border}`,background:"transparent",
       color:T.textSec,fontSize:14,fontWeight:500,fontFamily:ff,cursor:"pointer",transition:"all .2s" }}
       onMouseEnter={e=>{e.currentTarget.style.borderColor=T.accent;e.currentTarget.style.color=T.accent;}}
-      onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.textSec;}}>+ 添加业务线</button>
+      onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.textSec;}}>+ 添加话题</button>
   </>;
 }
 
@@ -294,7 +294,7 @@ function StepCompetitors({ competitors, set }) {
           <Field label="别名" sub="英文名或其他简称" style={{margin:0}}>
             <TagInput tags={c.aliases} onChange={v=>upd(i,"aliases",v)} placeholder="英文名等" />
           </Field>
-          <Field label="关联业务线" sub="与上方业务线对应" style={{margin:0}}>
+          <Field label="关联话题" sub="与上方话题对应" style={{margin:0}}>
             <Input value={c.business_line} onChange={v=>upd(i,"business_line",v)} placeholder="会员权益" />
           </Field>
         </div>
@@ -311,7 +311,7 @@ function StepCompetitors({ competitors, set }) {
 /* ── Steps ── */
 const STEPS = [
   { id:"company", label:"企业信息" },
-  { id:"topics", label:"业务线配置" },
+  { id:"topics", label:"话题配置" },
   { id:"competitors", label:"竞品配置" },
 ];
 
@@ -422,7 +422,7 @@ export default function BrandConfigPage() {
         <div style={{ marginBottom:36, animation:"fadeUp .5s ease" }}>
           <h1 style={{ fontSize:36,fontWeight:700,letterSpacing:-.8,color:T.text,lineHeight:1.15,margin:0 }}>品牌配置</h1>
           <p style={{ fontSize:17,color:T.textSec,marginTop:8,lineHeight:1.5,fontWeight:400 }}>
-            配置品牌信息、业务线与竞品，生成 GEO 诊断报告。
+            配置品牌信息、话题与竞品，生成 GEO 诊断报告。
           </p>
         </div>
 

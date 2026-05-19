@@ -133,6 +133,10 @@ function MiniBar({ value, type = 'n' }) {
   return <div className="dr-bar"><div className={`dr-bar-f ${type}`} style={{ width: `${width}%` }} /></div>
 }
 
+function percentValue(value) {
+  return Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Number(value) * 100)) : 0
+}
+
 function SentimentChange({ value }) {
   const change = String(value || '').toLowerCase()
   if (change === 'up') return <span className="dr-sent-change up">↑</span>
@@ -178,11 +182,11 @@ function Overview({ data }) {
         <div className="dr-ov-card">
           <div className="dr-ov-brow">全局排名</div>
           <div><span className="dr-rank-n">{selfRank || '—'}</span><span className="dr-rank-u">/ {ranking.length || '—'}</span></div>
-          <div className="dr-rank-sub">按品牌提及率排序</div>
+          <div className="dr-rank-sub">按品牌可见度排序</div>
           <div className="dr-rank-rows">
             {ranking.length ? ranking.map((row, index) => (
               <div className={`dr-rank-row ${row.is_self ? 'self' : ''}`} key={`${row.name}-${index}`}>
-                <span className="idx">{index + 1}</span><span className="nm">{row.name}</span><span className="vl">{displayPercent(row.mention_rate)}</span>
+                <span className="idx">{index + 1}</span><span className="nm">{row.name}</span><span className="vl">{displayPercent(row.visibility ?? row.mention_rate)}</span>
               </div>
             )) : <EmptyState title="暂无竞品排名" detail="聚合数据未提供 competitor_ranking。" />}
           </div>
@@ -225,10 +229,60 @@ function Platforms({ data }) {
   return <div className="dr-tw"><table><thead><tr><th>平台</th><th>提及率</th><th>健康评分</th><th>自有引用</th><th>竞品排名</th></tr></thead><tbody>{rows.map(row => <tr key={row.name}><td><strong>{row.name}</strong><small>{displayValue(row.samples, 0)} 条样本</small></td><td><b>{displayPercent(row.mention_rate)}</b><MiniBar value={Number(row.mention_rate) * 100} type={Number(row.mention_rate) >= 0.5 ? 'g' : 'a'} /></td><td><span className={`dr-hs ${Number(row.ai_recommend_score) >= 75 ? 'g' : Number(row.ai_recommend_score) >= 50 ? 'y' : 'r'}`}>{displayValue(row.ai_recommend_score, 0)}</span></td><td>{displayValue(row.own_citations, 0)}</td><td>{row.competitor_rank === null ? '未采集' : `#${displayValue(row.competitor_rank, 0)}`}</td></tr>)}</tbody></table></div>
 }
 
+function TopicPlatformVisibility({ data }) {
+  const rows = data.display.topic_platform_visibility || []
+  if (!rows.length) return <EmptyState title="暂无分话题可见度" detail="聚合数据未提供 topic_platform_visibility。" />
+  return (
+    <div className="dr-topic-vis-list">
+      {rows.map(topic => (
+        <div className="dr-topic-vis" key={topic.topic}>
+          <div className="dr-topic-vis-h">{topic.topic}</div>
+          <div className="dr-topic-vis-platforms">
+            {topic.platforms.map(platform => {
+              const topCompetitors = platform.competitors.filter(row => !row.is_self).slice(0, 2)
+              return (
+                <div className="dr-topic-vis-row" key={`${topic.topic}-${platform.platform}`}>
+                  <div className="dr-topic-vis-main">
+                    <strong>{platform.platform}</strong>
+                    <small>{displayValue(platform.samples, 0)} 条样本 · {displayValue(platform.visibility_eligible_samples, 0)} 条可见度样本</small>
+                  </div>
+                  <div className="dr-topic-vis-bar"><MiniBar value={percentValue(platform.visibility)} type={Number(platform.visibility) >= 0.5 ? 'g' : 'a'} /></div>
+                  <div className="dr-topic-vis-metric">{displayPercent(platform.visibility)}</div>
+                  <div className="dr-topic-vis-rank">{platform.competitor_rank == null ? '未采集' : `#${displayValue(platform.competitor_rank, 0)}`}</div>
+                  <div className="dr-topic-vis-ctx">
+                    {topCompetitors.length ? topCompetitors.map(row => (
+                      <span key={row.name}>{row.name} {displayPercent(row.visibility)}</span>
+                    )) : <span>暂无竞品数据</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Competitors({ data }) {
   const rows = data.display.competitor_ranking
   if (!rows.length) return <EmptyState title="暂无竞品排名" detail="聚合数据未提供 competitor_ranking。" />
-  return <div className="dr-tw"><table><thead><tr><th>排名</th><th>品牌</th><th>提及率</th><th>类型</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.name}-${index}`}><td><span className="dr-chip n">#{index + 1}</span></td><td><strong>{row.name}</strong></td><td>{displayPercent(row.mention_rate)}</td><td>{row.is_self ? '本品牌' : '竞品'}</td></tr>)}</tbody></table></div>
+  return (
+    <div className="dr-comp-bars">
+      {rows.map((row, index) => {
+        const value = row.visibility ?? row.mention_rate
+        return (
+          <div className={`dr-comp-bar-row ${row.is_self ? 'self' : ''}`} key={`${row.name}-${index}`}>
+            <span className="dr-comp-rank">#{index + 1}</span>
+            <span className="dr-comp-name">{row.name}</span>
+            <div className="dr-comp-track"><div className="dr-comp-fill" style={{ width: `${percentValue(value)}%` }} /></div>
+            <span className="dr-comp-value">{displayPercent(value)}</span>
+            <span className="dr-comp-type">{row.is_self ? '本品牌' : '竞品'}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 function Sentiment({ data }) {
@@ -237,7 +291,7 @@ function Sentiment({ data }) {
   return (
     <>
       <div className="dr-sent-kpis"><div className="dr-sent-kpi"><div className="dr-sent-kpi-v green">{displayPercent(sentiment.positive_rate, 0)}</div><div className="dr-sent-kpi-l">正面推荐</div></div><div className="dr-sent-kpi"><div className="dr-sent-kpi-v">{displayPercent(sentiment.neutral_rate, 0)}</div><div className="dr-sent-kpi-l">中立列举</div></div><div className="dr-sent-kpi"><div className="dr-sent-kpi-v red">{displayPercent(sentiment.negative_rate, 0)}</div><div className="dr-sent-kpi-l">负面评价</div></div><div className="dr-sent-kpi"><div className="dr-sent-kpi-v blue">{displayValue(data.global.ai_recommend_score, 0)}</div><div className="dr-sent-kpi-l">AI 推荐度</div></div></div>
-      {data.display.topics.length ? <div className="dr-tw dr-sent-table"><table><thead><tr><th>业务线</th><th>正面</th><th>中立</th><th>负面</th><th>较上期变化</th></tr></thead><tbody>{data.display.topics.map(topic => <tr key={topic.name}><td><strong>{topic.name}</strong></td><td className="dr-sent-positive">{displayValue(topic.positive, 0, '%')}</td><td>{displayValue(topic.neutral, 0, '%')}</td><td className="dr-sent-negative">{displayValue(topic.negative, 0, '%')}</td><td><SentimentChange value={topic.change ?? topic.verdict} /></td></tr>)}</tbody></table></div> : <EmptyState title="暂无话题调性" />}
+      {data.display.topics.length ? <div className="dr-tw dr-sent-table"><table><thead><tr><th>话题</th><th>正面</th><th>中立</th><th>负面</th><th>较上期变化</th></tr></thead><tbody>{data.display.topics.map(topic => <tr key={topic.name}><td><strong>{topic.name}</strong></td><td className="dr-sent-positive">{displayValue(topic.positive, 0, '%')}</td><td>{displayValue(topic.neutral, 0, '%')}</td><td className="dr-sent-negative">{displayValue(topic.negative, 0, '%')}</td><td><SentimentChange value={topic.change ?? topic.verdict} /></td></tr>)}</tbody></table></div> : <EmptyState title="暂无话题调性" />}
     </>
   )
 }
@@ -381,6 +435,7 @@ export default function DiagnosticReportPage() {
       <Section number="01" title="关键问题&优化建议"><Insights data={data} /></Section>
       <Section number="02" title="信源引用情况"><Sources data={data} /></Section>
       <Section number="03" title="六平台健康度"><Platforms data={data} /></Section>
+      <Section number="03A" title="分话题可见度表现"><TopicPlatformVisibility data={data} /></Section>
       <Section number="04" title="竞品排名与差距"><Competitors data={data} /></Section>
       <Section number="05" title="品牌调性分析"><Sentiment data={data} /></Section>
       <Section number="06" title="品牌配置"><BrandConfig data={data} /></Section>

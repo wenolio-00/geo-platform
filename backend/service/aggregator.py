@@ -30,6 +30,7 @@ def aggregate_report(
     competitor_names = [item["name"] for item in brand_config.get("competitors", []) if item.get("name")]
     brands = [brand_config["entity_name"], *competitor_names]
     brand_stats = {name: {"mentions": 0, "positions": []} for name in brands}
+    brand_visibility_mentions = Counter()
     platform_brand_stats: dict[str, dict[str, dict]] = {}
     platform_sample_counts = Counter()
     platform_visibility_sample_counts = Counter()
@@ -41,6 +42,7 @@ def aggregate_report(
     topic_sentiments = defaultdict(Counter)
     for business_line in configured_business_lines:
         topic_sentiments[business_line] = Counter()
+    topic_platform_stats: dict[tuple[str, str], dict] = {}
     source_counts = Counter()
     official_source_counts = Counter()
     source_url_rows: dict[str, dict] = {}
@@ -58,9 +60,24 @@ def aggregate_report(
         platform_sample_counts[platform] += 1
         query_text = result.get("query_text") or query_text_by_id.get(str(result.get("query_id")))
         counts_for_visibility = not _query_mentions_self(query_text, brand_config)
+        business_line = _business_line_for_result(result.get("topic"), business_line_lookup)
+        topic_platform = None
+        if business_line:
+            topic_platform = topic_platform_stats.setdefault(
+                (business_line, platform),
+                {
+                    "samples": 0,
+                    "visibility_samples": 0,
+                    "brand_mentions": Counter(),
+                    "brand_visibility_mentions": Counter(),
+                },
+            )
+            topic_platform["samples"] += 1
         if counts_for_visibility:
             visibility_samples += 1
             platform_visibility_sample_counts[platform] += 1
+            if topic_platform:
+                topic_platform["visibility_samples"] += 1
         if platform not in platform_brand_stats:
             platform_brand_stats[platform] = {name: {"mentions": 0, "positions": []} for name in brands}
         mentions = result.get("parsed", {}).get("mentioned_brands", [])
@@ -80,11 +97,16 @@ def aggregate_report(
             if mention.get("position"):
                 brand_stats[matched]["positions"].append(mention["position"])
                 platform_brand_stats[platform][matched]["positions"].append(mention["position"])
+            if topic_platform:
+                topic_platform["brand_mentions"][matched] += 1
+            if counts_for_visibility:
+                brand_visibility_mentions[matched] += 1
+                if topic_platform:
+                    topic_platform["brand_visibility_mentions"][matched] += 1
             if matched == brand_config["entity_name"]:
                 mentioned_self = True
                 self_sentiments[mention.get("sentiment") or "neutral"] += 1
                 platform_sentiments[platform][mention.get("sentiment") or "neutral"] += 1
-                business_line = _business_line_for_result(result.get("topic"), business_line_lookup)
                 if business_line:
                     topic_sentiments[business_line][mention.get("sentiment") or "neutral"] += 1
             elif matched in competitor_names:
@@ -105,7 +127,6 @@ def aggregate_report(
                 official_source_counts[domain] += 1
             _collect_source_reference(source_url_rows, result, citation)
 
-        business_line = _business_line_for_result(result.get("topic"), business_line_lookup)
         if business_line:
             topic_sentiments.setdefault(business_line, Counter())
 
@@ -187,7 +208,8 @@ def aggregate_report(
             "competitor_suppression_rate": _round(competitor_only / total) if total else 0,
             "summary_text": _summary(brand_config["entity_name"], visibility, avg_rank, ai_recommend_score, total),
         },
-        "competitor_ranking": _competitor_ranking(brand_stats, total),
+        "competitor_ranking": _competitor_ranking(brand_stats, total, brand_config["entity_name"], visibility_samples, brand_visibility_mentions),
+        "topic_platform_visibility": _topic_platform_visibility(topic_platform_stats, brands, brand_config["entity_name"]),
         "platforms": platforms_rows,
         "sources": [
             {
@@ -410,21 +432,84 @@ def _sentiment_rates(counter: Counter) -> dict:
     }
 
 
-def _competitor_ranking(stats: dict, total: int) -> list[dict]:
+def _competitor_ranking(
+    stats: dict,
+    total: int,
+    self_name: str,
+    visibility_total: int | None = None,
+    visibility_mentions: Counter | None = None,
+) -> list[dict]:
     rows = []
     for name, values in stats.items():
-        rows.append({"name": name, "mention_rate": _round(values["mentions"] / total) if total else 0, "is_self": False})
-    if rows:
-        rows[0]["is_self"] = True
-    return rows
+        rows.append(
+            {
+                "name": name,
+                "mention_rate": _round(values["mentions"] / total) if total else 0,
+                "visibility": _round((visibility_mentions or Counter())[name] / visibility_total) if visibility_total else 0,
+                "is_self": name == self_name,
+            }
+        )
+    return _sort_brand_rows(rows)
 
 
 def _self_rank(stats: dict, total: int, self_name: str) -> int | None:
-    ranking = sorted(_competitor_ranking(stats, total), key=lambda row: row["mention_rate"], reverse=True)
+    ranking = _competitor_ranking(stats, total, self_name)
     for index, row in enumerate(ranking, start=1):
         if row["name"] == self_name:
             return index
     return None
+
+
+def _sort_brand_rows(rows: list[dict]) -> list[dict]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            -(row.get("visibility") or 0),
+            -(row.get("mention_rate") or 0),
+            str(row.get("name") or ""),
+        ),
+    )
+
+
+def _topic_platform_visibility(topic_platform_stats: dict[tuple[str, str], dict], brands: list[str], self_name: str) -> list[dict]:
+    by_topic: dict[str, list[dict]] = defaultdict(list)
+    for (topic, platform), stats in topic_platform_stats.items():
+        samples = stats["samples"]
+        visibility_samples = stats["visibility_samples"]
+        competitors = []
+        for name in brands:
+            mention_rate = _round(stats["brand_mentions"][name] / samples) if samples else 0
+            visibility = _round(stats["brand_visibility_mentions"][name] / visibility_samples) if visibility_samples else 0
+            competitors.append(
+                {
+                    "name": name,
+                    "visibility": visibility,
+                    "mention_rate": mention_rate,
+                    "is_self": name == self_name,
+                }
+            )
+        ranked = []
+        for index, row in enumerate(_sort_brand_rows(competitors), start=1):
+            ranked.append({**row, "rank": index})
+        self_row = next((row for row in ranked if row["is_self"]), None)
+        by_topic[topic].append(
+            {
+                "platform": platform,
+                "samples": samples,
+                "visibility_eligible_samples": visibility_samples,
+                "visibility": self_row["visibility"] if self_row else 0,
+                "competitor_rank": self_row["rank"] if self_row else None,
+                "competitors": ranked,
+            }
+        )
+
+    return [
+        {
+            "topic": topic,
+            "platforms": sorted(platforms, key=lambda row: (-(row.get("visibility") or 0), str(row.get("platform") or ""))),
+        }
+        for topic, platforms in sorted(by_topic.items(), key=lambda item: item[0])
+    ]
 
 
 def _topic_rows(topic_sentiments: dict) -> list[dict]:

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import fixture from '../src/fixtures/reportData.uploaded.demo.json' with { type: 'json' }
 import { applyDisplayRules, computeAiRecommendScoreV63, computeVisibilityV63, normalizeReportData } from '../src/lib/reportDataAdapter.js'
@@ -14,6 +15,7 @@ describe('report data contract', () => {
     assert.match(html, /关键问题&amp;优化建议/)
     assert.match(html, /信源引用情况/)
     assert.match(html, /六平台健康度/)
+    assert.match(html, /分话题可见度表现/)
     assert.match(html, /竞品排名与差距/)
     assert.match(html, /品牌调性分析/)
     assert.match(html, /较上期变化/)
@@ -98,6 +100,42 @@ describe('report data contract', () => {
     assert.equal(computeAiRecommendScoreV63(0.5, 0.6), 30)
     assert.equal(normalized.global.visibility, 0.5)
     assert.equal(normalized.global.ai_recommend_score, 30)
+  })
+
+  it('sorts competitor ranking by visibility before mention rate', () => {
+    const data = clone(fixture)
+    data.competitor_ranking = [
+      { name: '高提及低可见', visibility: 0.1, mention_rate: 0.9, is_self: false },
+      { name: '低提及高可见', visibility: 0.7, mention_rate: 0.2, is_self: false },
+      { name: '测试品牌A', visibility: 0.4, mention_rate: 0.4, is_self: true },
+    ]
+    const display = applyDisplayRules(normalizeReportData(data))
+    assert.deepEqual(display.display.competitor_ranking.map(row => row.name), ['低提及高可见', '测试品牌A', '高提及低可见'])
+  })
+
+  it('uses mention rate as legacy competitor visibility fallback', () => {
+    const data = clone(fixture)
+    delete data.topic_platform_visibility
+    data.competitor_ranking = [
+      { name: '测试品牌A', mention_rate: 0.2, is_self: true },
+      { name: '测试品牌B', mention_rate: 0.6, is_self: false },
+    ]
+    const normalized = normalizeReportData(data)
+    const html = generateReportHtml(data)
+    assert.equal(normalized.competitor_ranking[0].visibility, 0.2)
+    assert.match(html, /暂无分话题可见度/)
+    assert.match(html, /测试品牌B/)
+    assert.match(html, /60.0%/)
+  })
+
+  it('normalizes and exports topic-platform visibility', () => {
+    const normalized = normalizeReportData(fixture)
+    const html = generateReportHtml(fixture)
+    assert.equal(normalized.topic_platform_visibility[0].topic, '积分商城')
+    assert.equal(normalized.topic_platform_visibility[0].platforms[0].platform, 'DeepSeek')
+    assert.match(html, /分话题可见度表现/)
+    assert.match(html, /条可见度样本/)
+    assert.match(html, /DeepSeek/)
   })
 
   it('keeps explicit visibility when rank is missing', () => {
@@ -206,6 +244,22 @@ describe('report data contract', () => {
     assert.match(html, /高频引用网址/)
     assert.match(html, /兑吧适合金融场景积分商城运营。/)
     assert.match(html, /<details class="url-ref">/)
+  })
+
+  it('keeps updated user-facing copy in report and brand config surfaces', () => {
+    const html = generateReportHtml(fixture)
+    const brandConfigPage = readFileSync(new URL('./pages/BrandConfigPage.jsx', import.meta.url), 'utf8')
+    const reportPage = readFileSync(new URL('./pages/DiagnosticReportPage.jsx', import.meta.url), 'utf8')
+    const reportGenerator = readFileSync(new URL('./lib/reportGenerator.js', import.meta.url), 'utf8')
+    const smartPrefill = readFileSync(new URL('../backend/service/smart_prefill.py', import.meta.url), 'utf8')
+
+    assert.doesNotMatch(html, /业务线/)
+    assert.doesNotMatch(brandConfigPage, /业务线/)
+    assert.doesNotMatch(reportPage, /业务线/)
+    assert.doesNotMatch(reportGenerator, /业务线/)
+    assert.doesNotMatch(smartPrefill, /业务线/)
+    assert.doesNotMatch(brandConfigPage, /label="痛点"/)
+    assert.match(brandConfigPage, /用户通用痛点/)
   })
 
   it('normalizeReportData records audit.missing_fields but does not fabricate business data', () => {

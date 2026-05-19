@@ -67,6 +67,7 @@ export const REPORT_SECTION_ORDER = [
   'insights',
   'sources',
   'platforms',
+  'topic_platform_visibility',
   'competitors',
   'sentiment',
   'brand_config',
@@ -77,6 +78,7 @@ export const REPORT_SECTION_TITLES = {
   insights: '01 关键问题&优化建议',
   sources: '02 信源引用情况',
   platforms: '03 六平台健康度',
+  topic_platform_visibility: '03A 分话题可见度表现',
   competitors: '04 竞品排名与差距',
   sentiment: '05 品牌调性分析',
   brand_config: '06 品牌配置',
@@ -126,6 +128,7 @@ export const ARRAY_SECTION_PATHS = {
   insights: 'insights',
   sources: 'sources',
   platforms: 'platforms',
+  topic_platform_visibility: 'topic_platform_visibility',
 }
 
 export function hasOwnPath(input, path) {
@@ -357,6 +360,51 @@ function normalizeSourceReferences(rows) {
   }).filter(row => row.url && row.domain)
 }
 
+function normalizeBrandVisibilityRows(rows) {
+  return normalizeArray(rows).map(row => {
+    const mentionRate = toNumberOrNull(row?.mention_rate)
+    const visibility = toNumberOrNull(row?.visibility) ?? mentionRate
+    return {
+      ...row,
+      name: toStringOrNull(row?.name),
+      visibility,
+      mention_rate: mentionRate,
+      rank: toNumberOrNull(row?.rank),
+      is_self: Boolean(row?.is_self),
+    }
+  }).filter(row => row.name)
+}
+
+function sortBrandVisibilityRows(rows) {
+  return [...rows].sort((a, b) => {
+    const visibilityDelta = (b.visibility ?? -Infinity) - (a.visibility ?? -Infinity)
+    if (visibilityDelta) return visibilityDelta
+    const mentionDelta = (b.mention_rate ?? -Infinity) - (a.mention_rate ?? -Infinity)
+    if (mentionDelta) return mentionDelta
+    return String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hans-CN')
+  }).map((row, index) => ({ ...row, rank: row.rank ?? index + 1 }))
+}
+
+function normalizeTopicPlatformVisibility(rows) {
+  return normalizeArray(rows).map(row => ({
+    ...row,
+    topic: toStringOrNull(row?.topic),
+    platforms: normalizeArray(row?.platforms).map(platform => {
+      const competitors = sortBrandVisibilityRows(normalizeBrandVisibilityRows(platform?.competitors))
+      const self = competitors.find(competitor => competitor.is_self)
+      return {
+        ...platform,
+        platform: normalizePlatformName(platform?.platform ?? platform?.name),
+        samples: toNumberOrNull(platform?.samples),
+        visibility_eligible_samples: toNumberOrNull(platform?.visibility_eligible_samples),
+        visibility: toNumberOrNull(platform?.visibility) ?? self?.visibility ?? null,
+        competitor_rank: toNumberOrNull(platform?.competitor_rank) ?? self?.rank ?? null,
+        competitors,
+      }
+    }).filter(platform => platform.platform),
+  })).filter(row => row.topic && row.platforms.length)
+}
+
 function sectionEmpty(data, section) {
   if (section === 'executive_summary') return !data.executive_summary
   if (section === 'sources') {
@@ -425,12 +473,8 @@ export function normalizeReportData(raw = {}) {
       competitor_suppression_rate: toNumberOrNull(raw.global?.competitor_suppression_rate),
       summary_text: toStringOrNull(raw.global?.summary_text),
     },
-    competitor_ranking: normalizeArray(raw.competitor_ranking).map(row => ({
-      ...row,
-      name: toStringOrNull(row?.name),
-      mention_rate: toNumberOrNull(row?.mention_rate),
-      is_self: Boolean(row?.is_self),
-    })).filter(row => row.name),
+    competitor_ranking: normalizeBrandVisibilityRows(raw.competitor_ranking),
+    topic_platform_visibility: normalizeTopicPlatformVisibility(raw.topic_platform_visibility),
     platforms: normalizeArray(raw.platforms).map(row => ({
       ...row,
       name: normalizePlatformName(row?.name),
@@ -503,14 +547,28 @@ export function applyDisplayRules(normalized) {
     display: {},
   }
 
-  data.competitor_ranking = [...data.competitor_ranking]
-    .sort((a, b) => (b.mention_rate ?? -Infinity) - (a.mention_rate ?? -Infinity))
+  data.competitor_ranking = sortBrandVisibilityRows(data.competitor_ranking)
   data.sources = [...data.sources]
     .sort((a, b) => (b.count ?? -Infinity) - (a.count ?? -Infinity))
   data.source_references = [...data.source_references]
     .sort((a, b) => (b.citation_count ?? -Infinity) - (a.citation_count ?? -Infinity))
   data.platforms = [...data.platforms]
     .sort((a, b) => (b.ai_recommend_score ?? -Infinity) - (a.ai_recommend_score ?? -Infinity))
+  data.topic_platform_visibility = [...data.topic_platform_visibility]
+    .map(topic => ({
+      ...topic,
+      platforms: [...topic.platforms]
+        .sort((a, b) => {
+          const visibilityDelta = (b.visibility ?? -Infinity) - (a.visibility ?? -Infinity)
+          if (visibilityDelta) return visibilityDelta
+          return String(a.platform || '').localeCompare(String(b.platform || ''), 'zh-Hans-CN')
+        })
+        .map(platform => ({
+          ...platform,
+          competitors: sortBrandVisibilityRows(platform.competitors),
+        })),
+    }))
+    .sort((a, b) => String(a.topic || '').localeCompare(String(b.topic || ''), 'zh-Hans-CN'))
   data.insights = [...data.insights]
   data.topics = [...data.topics]
   data.optimization_recommendations = [...data.optimization_recommendations]
@@ -520,6 +578,7 @@ export function applyDisplayRules(normalized) {
   data.display.source_references = truncateRows(data.source_references, 'source_references', data.audit)
   data.display.source_gap = truncateRows(data.source_gap, 'source_gap', data.audit)
   data.display.platforms = truncateRows(data.platforms, 'platforms', data.audit)
+  data.display.topic_platform_visibility = truncateRows(data.topic_platform_visibility, 'topic_platform_visibility', data.audit)
   data.display.insights = truncateRows(data.insights, 'insights', data.audit)
   data.display.topics = truncateRows(data.topics, 'topics', data.audit)
   data.display.optimization_recommendations = truncateRows(data.optimization_recommendations, 'optimization_recommendations', data.audit)

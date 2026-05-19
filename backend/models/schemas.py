@@ -9,7 +9,7 @@ class BrandConfigTopic(BaseModel):
     topic_name: str | None = None
     business_line: str | None = None
     priority: int | None = None
-    pain_point: str | None = None  # 业务痛点描述
+    pain_point: str | None = None  # 用户通用痛点描述
     goal: str | None = None         # 业务目标描述
 
 

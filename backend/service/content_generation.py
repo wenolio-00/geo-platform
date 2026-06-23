@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 from datetime import datetime, timezone
@@ -14,8 +15,10 @@ from service.dashboard_snapshots import (
     persist_dashboard_snapshot,
     sync_completed_run_snapshots,
 )
+from service.content_templates import compact_template, template_context
 from service.inspector import get_run, latest_completed_run
 from service.llm_tasks import brief_to_json_text, invoke_llm_task
+from service.platform_registry import DEFAULT_TASK_PROVIDER, llm_task_options
 from service.storage import content_feedback_store, content_versions_store, effect_attribution_store, runs_store
 
 
@@ -32,18 +35,30 @@ FORBIDDEN_META_PHRASES = {
     "写作说明",
     "输出要求",
 }
+logger = logging.getLogger(__name__)
 
 
-def get_content_generation_context(brand_id: str | None = None) -> dict[str, Any] | None:
-    contract = _load_dashboard_contract(brand_id=brand_id)
+def get_content_generation_context(
+    brand_id: str | None = None,
+    brand_config_id: str | None = None,
+    action_id: str | None = None,
+    rule_id: str | None = None,
+) -> dict[str, Any] | None:
+    contract = _load_dashboard_contract(brand_id=brand_id, brand_config_id=brand_config_id)
     if not contract:
         return None
 
     actions = contract.get("optimization_actions") or []
     rules = contract.get("cross_topic_rules") or []
     rule_candidates = _rule_candidates(contract)
-    default_action = actions[0] if actions else None
-    default_rule = _resolve_rule(contract, None, default_action)
+    default_action = next((item for item in actions if item.get("action_id") == action_id), None) or (actions[0] if actions else None)
+    default_rule = _resolve_rule(contract, rule_id, default_action)
+    templates = template_context(contract, default_action)
+    templates_by_action = {
+        action.get("action_id"): _compact_template_context(template_context(contract, action))
+        for action in actions
+        if action.get("action_id")
+    }
 
     return {
         "contract_version": contract.get("contract_version"),
@@ -58,17 +73,60 @@ def get_content_generation_context(brand_id: str | None = None) -> dict[str, Any
         "defaults": {
             "action_id": default_action.get("action_id") if default_action else None,
             "rule_id": default_rule.get("rule_id") if default_rule else None,
+            "template_id": (templates.get("template_recommendation") or {}).get("template_id"),
         },
+        "template_recommendation": compact_template(templates.get("template_recommendation")),
+        "template_candidates": [compact_template(candidate) for candidate in templates.get("template_candidates") or []],
+        "templates_by_action": templates_by_action,
+        "brand_material_summary": templates.get("brand_material_summary"),
+        "template_system_version": templates.get("template_system_version"),
         "available_rule_count": len(rule_candidates or rules),
     }
 
 
 def generate_optimized_draft(payload: dict[str, Any]) -> dict[str, Any]:
+    contract, action, rule, templates, action_for_generation = _prepare_generation_context(payload)
+    generation_result = _generate_publish_ready_text(contract, action_for_generation, rule)
+    generated_text, generation_source, generation_metadata = _normalize_generation_result(generation_result)
+
+    return _persist_content_version(
+        contract=contract,
+        action=action,
+        rule=rule,
+        generated_text=generated_text,
+        generation_source=generation_source,
+        generation_metadata=generation_metadata,
+        parent_content_version_id=None,
+        template_metadata=templates,
+    )
+
+
+async def generate_optimized_draft_async(payload: dict[str, Any]) -> dict[str, Any]:
+    contract, action, rule, templates, action_for_generation = _prepare_generation_context(payload)
+    generation_result = await _generate_publish_ready_text_async(contract, action_for_generation, rule)
+    generated_text, generation_source, generation_metadata = _normalize_generation_result(generation_result)
+
+    return _persist_content_version(
+        contract=contract,
+        action=action,
+        rule=rule,
+        generated_text=generated_text,
+        generation_source=generation_source,
+        generation_metadata=generation_metadata,
+        parent_content_version_id=None,
+        template_metadata=templates,
+    )
+
+
+def _prepare_generation_context(
+    payload: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     brand_id = str(payload.get("brand_id") or "").strip()
+    brand_config_id = str(payload.get("brand_config_id") or "").strip()
     action_id = str(payload.get("action_id") or "").strip()
     rule_id = str(payload.get("rule_id") or "").strip()
 
-    contract = _load_dashboard_contract(brand_id=brand_id)
+    contract = _load_dashboard_contract(brand_id=brand_id, brand_config_id=brand_config_id or None)
     if not contract:
         raise LookupError("No completed diagnostic dashboard snapshot is available yet.")
 
@@ -81,18 +139,15 @@ def generate_optimized_draft(payload: dict[str, Any]) -> dict[str, Any]:
     if not rule:
         raise ValueError("rule_id is not available in the latest content generation context.")
 
-    generation_result = _generate_publish_ready_text(contract, action, rule)
-    generated_text, generation_source, generation_metadata = _normalize_generation_result(generation_result)
-
-    return _persist_content_version(
-        contract=contract,
-        action=action,
-        rule=rule,
-        generated_text=generated_text,
-        generation_source=generation_source,
-        generation_metadata=generation_metadata,
-        parent_content_version_id=None,
+    templates = template_context(
+        contract,
+        action,
+        template_id=str(payload.get("template_id") or "").strip() or None,
+        template_version=str(payload.get("template_version") or "").strip() or None,
     )
+    action_for_generation = dict(action)
+    action_for_generation["_content_template_context"] = templates
+    return contract, action, rule, templates, action_for_generation
 
 
 def save_content_version_edit(content_version_id: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -124,6 +179,7 @@ def save_content_version_edit(content_version_id: str, payload: dict[str, Any]) 
         generated_text=generated_text,
         generation_source="manual_edit",
         parent_content_version_id=content_version_id,
+        template_metadata=_template_metadata_from_parent(parent),
     )
 
 
@@ -233,11 +289,17 @@ def _persist_content_version(
     generation_source: str,
     parent_content_version_id: str | None,
     generation_metadata: dict[str, Any] | None = None,
+    template_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     now = datetime.now(timezone.utc).isoformat()
     brand = contract.get("main_brand") or {}
     content_version_id = f"cv_{uuid4().hex[:12]}"
     version_number = _next_version_number(brand.get("brand_id"), action.get("action_id"), rule.get("rule_id"))
+    selected_template = compact_template((template_metadata or {}).get("template_recommendation"))
+    brand_material = (template_metadata or {}).get("brand_material_summary") or {}
+    material_coverage = selected_template.get("material_coverage") if selected_template else None
+    if material_coverage and brand_material.get("field_coverage"):
+        material_coverage = {**material_coverage, "field_coverage": brand_material.get("field_coverage")}
     version = {
         "content_version_id": content_version_id,
         "draft_id": content_version_id,
@@ -252,6 +314,13 @@ def _persist_content_version(
         "source_rule_id": rule.get("source_rule_id"),
         "rule_version": rule.get("rule_version"),
         "rule_name": rule.get("rule_name"),
+        "rule_source_type": rule.get("source_type"),
+        "template_id": selected_template.get("template_id") if selected_template else None,
+        "template_version": selected_template.get("template_version") if selected_template else None,
+        "template_display_name": selected_template.get("display_name") if selected_template else None,
+        "template_matched_reason": selected_template.get("matched_reason") if selected_template else None,
+        "brand_material_source": brand_material.get("source"),
+        "material_coverage": material_coverage,
         "contract_version": contract.get("contract_version"),
         "baseline_run_id": contract.get("latest_run_id") or ((contract.get("diagnostic_run") or {}).get("run_id")),
         "report_id": (contract.get("report") or {}).get("report_id"),
@@ -276,16 +345,16 @@ def _persist_content_version(
     return version
 
 
-def _load_dashboard_contract(brand_id: str | None = None) -> dict[str, Any] | None:
+def _load_dashboard_contract(brand_id: str | None = None, brand_config_id: str | None = None) -> dict[str, Any] | None:
     sync_completed_run_snapshots()
-    contract = get_dashboard_contract(brand_id=brand_id)
+    contract = get_dashboard_contract(brand_id=brand_id, brand_config_id=brand_config_id)
     if contract:
         return contract
 
     run = latest_completed_run()
     if run and isinstance(run.get("report_data"), dict):
         persist_dashboard_snapshot(run, run["report_data"])
-        return get_dashboard_contract(brand_id=brand_id)
+        return get_dashboard_contract(brand_id=brand_id, brand_config_id=brand_config_id)
     return None
 
 
@@ -332,30 +401,52 @@ def _resolve_rule(contract: dict[str, Any], rule_id: str | None, action: dict[st
     return rules[0] if rules else None
 
 
-async def _generate_with_llm(contract: dict[str, Any], action: dict[str, Any], rule: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+async def _generate_with_llm(
+    contract: dict[str, Any],
+    action: dict[str, Any],
+    rule: dict[str, Any],
+    max_retries: int = 2,
+) -> tuple[str, dict[str, Any]]:
     brief = _build_generation_brief(contract, action, rule)
-    result = await invoke_llm_task(
-        task_type="content_generation",
-        payload={
-            "brand_config": contract.get("brand_config") or {},
-            "llm_provider": brief.get("llm_provider"),
-            "web_search_enabled": brief.get("web_search_enabled", True),
-            "llm_options": {"web_search_mode": brief.get("web_search_mode", "responses_web_search")},
-        },
-        provider=brief.get("llm_provider"),
-        system_prompt=_content_generation_system_prompt(),
-        user_prompt=_content_generation_user_prompt(brief),
-    )
-    content = str(result.get("raw_text") or "").strip()
-    if not content:
-        raise RuntimeError("claude content_generation returned empty text.")
-    return content, {
-        "provider": result.get("provider", "claude"),
-        "platform": result.get("platform", "claude"),
-        "model": result.get("model"),
-        "web_search_enabled": result.get("web_search_enabled", True),
-        "web_search_mode": result.get("web_search_mode") or "responses_web_search",
-    }
+    last_error: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            result = await invoke_llm_task(
+                task_type="content_generation",
+                payload={
+                    "brand_config": contract.get("brand_config") or {},
+                    "llm_provider": brief.get("llm_provider"),
+                    "web_search_enabled": brief.get("web_search_enabled", True),
+                    "llm_options": {"web_search_mode": brief.get("web_search_mode", "responses_web_search")},
+                },
+                provider=brief.get("llm_provider"),
+                system_prompt=_content_generation_system_prompt(),
+                user_prompt=_content_generation_user_prompt(brief),
+            )
+            content = str(result.get("raw_text") or "").strip()
+            if not content:
+                raise RuntimeError("content_generation returned empty text.")
+            return content, {
+                "provider": result.get("provider") or brief.get("llm_provider") or DEFAULT_TASK_PROVIDER,
+                "platform": result.get("platform") or brief.get("llm_provider") or DEFAULT_TASK_PROVIDER,
+                "model": result.get("model"),
+                "web_search_enabled": result.get("web_search_enabled", True),
+                "web_search_mode": result.get("web_search_mode") or "responses_web_search",
+                "used_fallback": result.get("used_fallback", False),
+                "primary_provider": result.get("primary_provider"),
+                "fallback_reason": result.get("fallback_reason"),
+            }
+        except Exception as error:
+            last_error = error
+            if attempt >= max_retries:
+                break
+            delay = _content_generation_retry_delay(attempt, is_rate_limited=_is_rate_limit_error(error))
+            logger.warning(
+                "content_generation_retry",
+                extra={"attempt": attempt + 1, "max_retries": max_retries, "delay_seconds": delay, "error": str(error)},
+            )
+            await asyncio.sleep(delay)
+    raise RuntimeError(f"content_generation failed after {max_retries + 1} attempts: {last_error}") from last_error
 
 
 def _draft_text(contract: dict[str, Any], action: dict[str, Any], rule: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
@@ -364,9 +455,28 @@ def _draft_text(contract: dict[str, Any], action: dict[str, Any], rule: dict[str
         return _sanitize_generated_text(generated), "prompt_driven_backend", metadata
     except Exception as error:
         if not _allow_content_generation_fallback():
-            raise RuntimeError(f"claude content_generation failed: {error}") from error
+            raise RuntimeError(f"content_generation failed: {error}") from error
+        fallback_provider = _resolve_task_provider(contract, DEFAULT_TASK_PROVIDER)
         return _fallback_draft_text(contract, action, rule), "prompt_fallback_backend", {
-            "provider": "claude",
+            "provider": fallback_provider,
+            "generation_source": "prompt_fallback_backend",
+            "fallback_reason": str(error),
+            "llm_error_type": type(error).__name__,
+            "web_search_enabled": True,
+            "web_search_mode": "responses_web_search",
+        }
+
+
+async def _draft_text_async(contract: dict[str, Any], action: dict[str, Any], rule: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+    try:
+        generated, metadata = await _generate_with_llm(contract, action, rule)
+        return _sanitize_generated_text(generated), "prompt_driven_backend", metadata
+    except Exception as error:
+        if not _allow_content_generation_fallback():
+            raise RuntimeError(f"content_generation failed: {error}") from error
+        fallback_provider = _resolve_task_provider(contract, DEFAULT_TASK_PROVIDER)
+        return _fallback_draft_text(contract, action, rule), "prompt_fallback_backend", {
+            "provider": fallback_provider,
             "generation_source": "prompt_fallback_backend",
             "fallback_reason": str(error),
             "llm_error_type": type(error).__name__,
@@ -379,6 +489,14 @@ def _generate_publish_ready_text(contract: dict[str, Any], action: dict[str, Any
     return _draft_text(contract, action, rule)
 
 
+async def _generate_publish_ready_text_async(
+    contract: dict[str, Any],
+    action: dict[str, Any],
+    rule: dict[str, Any],
+) -> tuple[str, str, dict[str, Any]]:
+    return await _draft_text_async(contract, action, rule)
+
+
 def _build_generation_brief(contract: dict[str, Any], action: dict[str, Any], rule: dict[str, Any]) -> dict[str, Any]:
     brand = contract.get("main_brand") or {}
     brand_config = contract.get("brand_config") or {}
@@ -386,6 +504,8 @@ def _build_generation_brief(contract: dict[str, Any], action: dict[str, Any], ru
     queryset = contract.get("queryset") or {}
     lineage = contract.get("lineage") or {}
     global_metrics = report.get("global") or {}
+    templates = action.get("_content_template_context") or {}
+    selected_template = compact_template(templates.get("template_recommendation"))
 
     return {
         "brand": {
@@ -417,10 +537,14 @@ def _build_generation_brief(contract: dict[str, Any], action: dict[str, Any], ru
         "rule": {
             "rule_id": rule.get("rule_id"),
             "rule_name": rule.get("rule_name"),
+            "source_type": rule.get("source_type"),
             "template": rule.get("template"),
             "required_elements": rule.get("required_elements") or [],
             "applies_to": rule.get("applies_to") or [],
         },
+        "content_template": selected_template,
+        "brand_material_summary": templates.get("brand_material_summary"),
+        "platform_rules": templates.get("platform_rules_default"),
         "available_facts": {
             "key_metrics": {
                 metric_id: global_metrics.get(metric_id)
@@ -449,9 +573,9 @@ def _build_generation_brief(contract: dict[str, Any], action: dict[str, Any], ru
                 ],
             },
         },
-        "llm_provider": "claude",
+        "llm_provider": _resolve_task_provider(contract, DEFAULT_TASK_PROVIDER),
         "web_search_enabled": (contract.get("lineage", {}) or {}).get("web_search_enabled", True),
-        "web_search_mode": "responses_web_search",
+        "web_search_mode": ((contract.get("lineage", {}) or {}).get("web_search_mode") or "responses_web_search"),
         "lineage": _content_lineage(contract),
         "output_constraints": {
             "must_be_publish_ready": True,
@@ -476,6 +600,17 @@ def _normalize_generation_result(result: object) -> tuple[str, str, dict[str, An
 
 def _allow_content_generation_fallback() -> bool:
     return os.getenv("ALLOW_CONTENT_GENERATION_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _content_generation_retry_delay(attempt: int, is_rate_limited: bool = False) -> float:
+    if is_rate_limited:
+        return min(300.0, 30.0 * (2**attempt))
+    return min(60.0, 3.0 * (2**attempt))
+
+
+def _is_rate_limit_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return "429" in text or "rate limit" in text or "quota" in text
 
 
 def _sanitize_generated_text(text: str) -> str:
@@ -536,7 +671,14 @@ def _content_generation_system_prompt() -> str:
     )
 
 
+def _template_instruction_from_brief(brief: dict[str, Any]) -> str:
+    content_template = brief.get("content_template") or {}
+    instruction = content_template.get("prompt_instruction") if isinstance(content_template, dict) else None
+    return instruction if isinstance(instruction, str) else ""
+
+
 def _content_generation_user_prompt(brief: dict[str, Any]) -> str:
+    template_instruction = _template_instruction_from_brief(brief).strip()
     return (
         "请根据以下 Brief，直接写出可发布正文。\n\n"
         "【硬性要求】\n"
@@ -545,7 +687,8 @@ def _content_generation_user_prompt(brief: dict[str, Any]) -> str:
         "3. 不要编造 available_facts 之外的数字、客户名称、案例名称、排名。\n"
         "4. 如果某些证据不足，允许省略对应段落，也不要强行补全。\n"
         "5. 语气要像品牌官网正式对外文案，不要像内部策略说明。\n\n"
-        f"{brief_to_json_text(brief)}"
+        + (template_instruction + "\n\n" if template_instruction else "")
+        + f"{brief_to_json_text(brief)}"
     )
 
 
@@ -600,6 +743,18 @@ def _next_version_number(brand_id: object, action_id: object, rule_id: object) -
     return (max(versions) if versions else 0) + 1
 
 
+def _resolve_task_provider(contract: dict[str, Any] | None, fallback: str | None = None) -> str:
+    lineage = (contract or {}).get("lineage") or {} if isinstance(contract, dict) else {}
+    diagnostic_run = (contract or {}).get("diagnostic_run") or {} if isinstance(contract, dict) else {}
+    payload = {
+        "llm_provider": lineage.get("llm_provider") or diagnostic_run.get("llm_provider") or fallback,
+        "web_search_enabled": lineage.get("web_search_enabled", True),
+    }
+    if lineage.get("web_search_mode"):
+        payload["llm_options"] = {"web_search_mode": lineage.get("web_search_mode")}
+    return llm_task_options("content_generation", payload)["provider"]
+
+
 def _queryset_summary(contract: dict[str, Any] | None) -> dict[str, Any]:
     queryset = ((contract or {}).get("queryset") or {}) if isinstance(contract, dict) else {}
     queries = queryset.get("queries") or []
@@ -626,9 +781,34 @@ def _content_lineage(contract: dict[str, Any] | None) -> dict[str, Any]:
         "parent_queryset_id": lineage.get("parent_queryset_id") or _queryset_summary(contract).get("parent_queryset_id"),
         "aggregation_version": lineage.get("aggregation_version"),
         "inspection_batch_id": lineage.get("inspection_batch_id"),
-        "llm_provider": "claude",
+        "llm_provider": lineage.get("llm_provider") or DEFAULT_TASK_PROVIDER,
         "web_search_enabled": lineage.get("web_search_enabled", True),
         "web_search_mode": lineage.get("web_search_mode") or "responses_web_search",
+    }
+
+
+def _template_metadata_from_parent(parent: dict[str, Any]) -> dict[str, Any]:
+    recommendation = {
+        "template_id": parent.get("template_id"),
+        "template_version": parent.get("template_version"),
+        "display_name": parent.get("template_display_name"),
+        "matched_reason": parent.get("template_matched_reason"),
+        "material_coverage": parent.get("material_coverage"),
+    }
+    return {
+        "template_recommendation": recommendation if recommendation.get("template_id") else None,
+        "brand_material_summary": {
+            "source": parent.get("brand_material_source"),
+            "field_coverage": (parent.get("material_coverage") or {}).get("field_coverage") or {},
+        },
+    }
+
+
+def _compact_template_context(context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "template_recommendation": compact_template(context.get("template_recommendation")),
+        "template_candidates": [compact_template(candidate) for candidate in context.get("template_candidates") or []],
+        "brand_material_summary": context.get("brand_material_summary"),
     }
 
 
@@ -667,6 +847,11 @@ def _new_attribution(version: dict[str, Any], contract: dict[str, Any] | None) -
         "action_type": version.get("action_type"),
         "rule_id": version.get("rule_id"),
         "rule_version": version.get("rule_version"),
+        "template_id": version.get("template_id"),
+        "template_version": version.get("template_version"),
+        "template_display_name": version.get("template_display_name"),
+        "brand_material_source": version.get("brand_material_source"),
+        "material_coverage": version.get("material_coverage"),
         "baseline_run_id": version.get("baseline_run_id") or lineage.get("baseline_run_id"),
         "comparison_run_id": None,
         "queryset_id": lineage.get("queryset_id"),

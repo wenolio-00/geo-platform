@@ -1,15 +1,24 @@
 from __future__ import annotations
 
+import logging
+from uuid import uuid4
+
 from service.context_extractor import ContextExtractor
 from service.queryset_matrix_client import QuerySetMatrixClient
 from service.queryset_library import normalize_queryset_snapshot
 from service.queryset_policy import apply_query_quality_filters, build_query_quality_report
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_CANDIDATE_QUERIES = 40
 DEFAULT_MIN_ACTIVE_QUERIES = 30
 DEFAULT_MAX_GENERATION_ATTEMPTS = 3
+PRODUCTION_MIN_CANDIDATE_QUERIES = 30
+PRODUCTION_MIN_ACTIVE_QUERIES = 30
 RESET_LOCAL_GOVERNANCE_POLICIES = {"create_new_version"}
 QUERYSET_FAILURE_PREVIEW_LIMIT = 40
+QUERYSET_GENERATION_MODES = {"matrix_only", "intent_enhanced"}
+DEFAULT_QUERYSET_GENERATION_MODE = "intent_enhanced"
 
 
 class QuerySetGenerationFailed(RuntimeError):
@@ -34,6 +43,73 @@ class QuerySetGenerationFailed(RuntimeError):
         self.last_query_candidates_preview = last_query_candidates_preview or []
         self.debug_context = debug_context or {}
 
+
+class QuerySetThresholdConfigurationError(ValueError):
+    pass
+
+
+def resolve_queryset_thresholds(run: dict) -> tuple[int, int]:
+    min_active_queries = _int_setting(run, "min_active_queries", "MIN_ACTIVE_QUERIES", DEFAULT_MIN_ACTIVE_QUERIES)
+    candidate_queries = _int_setting(
+        run,
+        "candidate_queries",
+        "QUERYSET_CANDIDATE_QUERIES",
+        _env_int("MAX_QUERIES_PER_RUN", DEFAULT_CANDIDATE_QUERIES),
+    )
+    return candidate_queries, min_active_queries
+
+
+def validate_production_queryset_thresholds(
+    *,
+    candidate_queries: int,
+    min_active_queries: int,
+    generation_constraints: dict | None = None,
+) -> None:
+    constraints = generation_constraints if isinstance(generation_constraints, dict) else {}
+    if constraints.get("allow_small_queryset") is True:
+        return
+    violations = []
+    if candidate_queries < PRODUCTION_MIN_CANDIDATE_QUERIES:
+        violations.append(f"candidate_queries={candidate_queries}")
+    if min_active_queries < PRODUCTION_MIN_ACTIVE_QUERIES:
+        violations.append(f"min_active_queries={min_active_queries}")
+    if not violations:
+        return
+    raise QuerySetThresholdConfigurationError(
+        "Production diagnostic QuerySet thresholds require "
+        f"candidate_queries >= {PRODUCTION_MIN_CANDIDATE_QUERIES} and "
+        f"min_active_queries >= {PRODUCTION_MIN_ACTIVE_QUERIES}, unless explicitly setting "
+        "generation_constraints.allow_small_queryset=true. "
+        f"Received {', '.join(violations)}."
+    )
+
+
+def validate_run_queryset_thresholds(run: dict) -> tuple[int, int]:
+    candidate_queries, min_active_queries = resolve_queryset_thresholds(run)
+    queryset_generation_mode(run)
+    constraints = run.get("generation_constraints") if isinstance(run.get("generation_constraints"), dict) else {}
+    validate_production_queryset_thresholds(
+        candidate_queries=candidate_queries,
+        min_active_queries=min_active_queries,
+        generation_constraints=constraints,
+    )
+    return candidate_queries, min_active_queries
+
+
+def queryset_generation_mode(run: dict) -> str:
+    constraints = run.get("generation_constraints") if isinstance(run.get("generation_constraints"), dict) else {}
+    mode = str(
+        run.get("queryset_generation_mode")
+        or constraints.get("queryset_generation_mode")
+        or constraints.get("queryset_mode")
+        or DEFAULT_QUERYSET_GENERATION_MODE
+    ).strip()
+    if mode not in QUERYSET_GENERATION_MODES:
+        raise QuerySetThresholdConfigurationError(
+            "Unsupported queryset_generation_mode: "
+            f"{mode}. Expected one of: {', '.join(sorted(QUERYSET_GENERATION_MODES))}."
+        )
+    return mode
 
 
 def _collect_existing_active_texts(brand_config: dict, include_historical: bool = True) -> set[str]:
@@ -83,13 +159,8 @@ def _same_brand_queryset(queryset: dict, brand_config: dict, entity_name: str) -
 
 
 async def generate_queryset(brand_config: dict, run: dict) -> dict:
-    min_active_queries = _int_setting(run, "min_active_queries", "MIN_ACTIVE_QUERIES", DEFAULT_MIN_ACTIVE_QUERIES)
-    candidate_queries = _int_setting(
-        run,
-        "candidate_queries",
-        "QUERYSET_CANDIDATE_QUERIES",
-        _env_int("MAX_QUERIES_PER_RUN", DEFAULT_CANDIDATE_QUERIES),
-    )
+    candidate_queries, min_active_queries = validate_run_queryset_thresholds(run)
+    generation_mode = queryset_generation_mode(run)
     max_attempts = _int_setting(
         run,
         "max_generation_attempts",
@@ -102,7 +173,20 @@ async def generate_queryset(brand_config: dict, run: dict) -> dict:
     topics = brand_config.get("topics", [])
     if topics:
         extractor = ContextExtractor()
-        brand_config["topics"] = await extractor.extract_all(topics, entity_name)
+        brand_config["topics"] = await _extract_topic_contexts(extractor, topics, entity_name)
+        if generation_mode == "intent_enhanced":
+            intent_analysis_results = await _extract_intent_analysis_batch(
+                extractor,
+                brand_config["topics"],
+                entity_name,
+            )
+            for topic in brand_config["topics"]:
+                if not isinstance(topic, dict):
+                    continue
+                topic_name = str(topic.get("topic_name") or topic.get("business_line") or "").strip()
+                analysis = intent_analysis_results.get(topic_name)
+                if analysis:
+                    topic["intent_analysis"] = analysis
 
     include_historical_duplicates = (run.get("queryset_policy") or "reuse_latest") != "create_new_version"
     existing_active_texts = _collect_existing_active_texts(
@@ -130,6 +214,7 @@ async def generate_queryset(brand_config: dict, run: dict) -> dict:
         quality_report["max_generation_attempts"] = max_attempts
         quality_report["candidate_target"] = candidate_queries
         quality_report["cumulative_active_count_before_attempt"] = len(active_queries)
+        quality_report["queryset_generation_mode"] = generation_mode
 
         appended = _append_attempt_candidates(accumulated_candidates, filtered_candidates, attempt)
         new_active = [
@@ -154,9 +239,10 @@ async def generate_queryset(brand_config: dict, run: dict) -> dict:
                 "candidate_target": candidate_queries,
                 "attempt_active_count": quality_report.get("active_count", 0),
                 "cumulative_active_count": len(active_queries),
-                "generation_mode": "accumulate_until_min_active",
-                "attempt_reports": [*attempt_reports, quality_report],
-            }
+                    "generation_mode": "accumulate_until_min_active",
+                    "queryset_generation_mode": generation_mode,
+                    "attempt_reports": [*attempt_reports, quality_report],
+                }
         )
         attempt_reports.append(quality_report)
         if cumulative_report["status"] == "pass":
@@ -178,12 +264,20 @@ async def generate_queryset(brand_config: dict, run: dict) -> dict:
                     "attempt_active_count": quality_report.get("active_count", 0),
                     "cumulative_active_count": len(capped_active_queries),
                     "generation_mode": "accumulate_until_min_active",
+                    "queryset_generation_mode": generation_mode,
                     "attempt_reports": [*attempt_reports],
                 }
             )
             result["query_candidates"] = capped_candidates
             result["queries"] = capped_active_queries
             result["quality_report"] = capped_report
+            result["queryset_generation_mode"] = generation_mode
+            result["queryset_variant"] = generation_mode
+            result["queryset_comparison_group"] = "queryset_generation_mode"
+            result["debug"] = {
+                **(result.get("debug") if isinstance(result.get("debug"), dict) else {}),
+                "queryset_generation_mode": generation_mode,
+            }
             return normalize_queryset_snapshot(result)
         failed_reports.append(quality_report)
 
@@ -214,11 +308,38 @@ async def generate_queryset(brand_config: dict, run: dict) -> dict:
             "min_active_queries": min_active_queries,
             "candidate_queries": candidate_queries,
             "max_generation_attempts": max_attempts,
+            "queryset_generation_mode": generation_mode,
             "existing_active_text_count": len(existing_active_texts),
             "accumulated_candidate_count": len(accumulated_candidates),
             "accumulated_active_count": len(active_queries),
         },
     )
+
+
+async def _extract_topic_contexts(
+    extractor: ContextExtractor,
+    topics: list[dict],
+    entity_name: str,
+) -> list[dict]:
+    try:
+        return await extractor.extract_all(topics, entity_name)
+    except Exception as error:
+        logger.warning(
+            "queryset_context_extraction_failed_using_fallback",
+            extra={"entity_name": entity_name, "error": str(error)},
+        )
+        return [_topic_with_fallback_context(topic) for topic in topics if isinstance(topic, dict)]
+
+
+def _topic_with_fallback_context(topic: dict) -> dict:
+    topic_name = str(topic.get("topic_name") or topic.get("business_line") or "").strip()
+    label = topic_name or "品牌核心业务"
+    return {
+        **topic,
+        "pain_point": str(topic.get("pain_point") or "").strip() or f"{label}效果不稳定",
+        "goal": str(topic.get("goal") or "").strip() or f"提升{label}业务效果",
+        "context_fallback_used": True,
+    }
 
 
 def _append_attempt_candidates(
@@ -371,12 +492,190 @@ async def _generate_matrix_queryset(brand_config: dict, run: dict, attempt: int,
     attempt_run = {
         **run,
         "queryset_generation_attempt": attempt,
+        "queryset_generation_mode": queryset_generation_mode(run),
         "generation_constraints": {
             **(run.get("generation_constraints") or {}),
             "candidate_queries": candidate_queries,
+            "queryset_generation_mode": queryset_generation_mode(run),
         },
     }
-    return await QuerySetMatrixClient().generate(brand_config, attempt_run)
+    result = await QuerySetMatrixClient().generate(brand_config, attempt_run)
+    mode = queryset_generation_mode(run)
+    result = {
+        **result,
+        "queryset_generation_mode": mode,
+        "queryset_variant": mode,
+        "queryset_comparison_group": "queryset_generation_mode",
+        "debug": {
+            **(result.get("debug") if isinstance(result.get("debug"), dict) else {}),
+            "queryset_generation_mode": mode,
+            "intent_analysis_injected": False,
+            "intent_query_count": 0,
+        },
+    }
+    if mode == "matrix_only":
+        return result
+    intent_queries = _build_intent_queries_from_topics(brand_config.get("topics", []))
+    if not intent_queries:
+        return result
+
+    matrix_queries = result.get("queries") if isinstance(result.get("queries"), list) else []
+    debug = result.get("debug") if isinstance(result.get("debug"), dict) else {}
+    return {
+        **result,
+        "queries": [*intent_queries, *matrix_queries],
+        "debug": {
+            **debug,
+            "intent_query_count": len(intent_queries),
+            "intent_analysis_injected": True,
+        },
+    }
+
+
+async def _extract_intent_analysis_batch(
+    extractor: ContextExtractor,
+    topics: list[dict],
+    entity_name: str,
+) -> dict[str, dict | None]:
+    results: dict[str, dict | None] = {}
+    if not extractor.is_available("intent_analysis"):
+        logger.info("queryset_intent_analysis_skipped", extra={"reason": "llm_unavailable"})
+        return results
+
+    for topic in topics:
+        if not isinstance(topic, dict):
+            continue
+        topic_name = str(topic.get("topic_name") or topic.get("business_line") or "").strip()
+        if not topic_name:
+            continue
+        try:
+            analysis = await extractor.extract_with_questions(
+                topic_name=topic_name,
+                business_line=str(topic.get("business_line") or "").strip() or None,
+                entity_name=entity_name,
+                pain_point=str(topic.get("pain_point") or "").strip() or None,
+                goal=str(topic.get("goal") or "").strip() or None,
+            )
+            results[topic_name] = analysis
+            logger.info(
+                "queryset_intent_analysis_extracted",
+                extra={
+                    "topic_name": topic_name,
+                    "pain_point_count": len(analysis.get("pain_points") or []),
+                    "ai_question_count": sum(
+                        len(point.get("ai_questions") or [])
+                        for point in analysis.get("pain_points", [])
+                        if isinstance(point, dict)
+                    ),
+                },
+            )
+        except Exception as error:
+            logger.warning(
+                "queryset_intent_analysis_failed",
+                extra={"topic_name": topic_name, "error": str(error)},
+            )
+            results[topic_name] = None
+    return results
+
+
+def _build_intent_queries_from_topics(topics: list[dict]) -> list[dict]:
+    queries: list[dict] = []
+    seen_texts: set[str] = set()
+    for topic in topics:
+        if not isinstance(topic, dict):
+            continue
+        analysis = topic.get("intent_analysis")
+        if not isinstance(analysis, dict):
+            continue
+        audience_profile = str(analysis.get("audience_profile") or "").strip()
+        pain_points = analysis.get("pain_points")
+        if not isinstance(pain_points, list):
+            continue
+        for pain_point in pain_points:
+            if not isinstance(pain_point, dict):
+                continue
+            questions = pain_point.get("ai_questions")
+            if not isinstance(questions, list):
+                continue
+            for question in questions:
+                query = _intent_query_from_question(topic, pain_point, question, audience_profile)
+                if not query:
+                    continue
+                text = query["query_text"]
+                if text in seen_texts:
+                    continue
+                seen_texts.add(text)
+                queries.append(query)
+    return queries
+
+
+def _intent_query_from_question(
+    topic: dict,
+    pain_point: dict,
+    question: object,
+    audience_profile: str,
+) -> dict | None:
+    if isinstance(question, str):
+        query_text = question.strip()
+        intent_type = "scenario_diagnosis"
+    elif isinstance(question, dict):
+        query_text = str(question.get("question") or "").strip()
+        intent_type = str(question.get("intent_type") or "scenario_diagnosis").strip()
+    else:
+        return None
+    if not query_text:
+        return None
+
+    query_pattern = _query_pattern_for_intent(intent_type)
+    journey_stage = _journey_stage_for_intent(intent_type)
+    topic_name = str(topic.get("topic_name") or topic.get("business_line") or "").strip()
+    return {
+        "query_id": f"intent_{uuid4().hex[:8]}",
+        "query_text": query_text,
+        "query_layer": "adaptive",
+        "run_scope": "production",
+        "metric_scope": "intent_driven",
+        "metric_weight": None,
+        "journey_stage": journey_stage,
+        "topic": topic_name or "品牌核心业务",
+        "intent_type": intent_type or "scenario_diagnosis",
+        "query_pattern": query_pattern,
+        "matrix_cell_id": f"{journey_stage}:{query_pattern}",
+        "prompt_template_id": "intent_analysis_seed",
+        "lifecycle_status": "active",
+        "quality_filter_status": None,
+        "quality_filter_reasons": [],
+        "source": "intent_analysis",
+        "pain_point": str(pain_point.get("pain_point") or "").strip() or None,
+        "severity": pain_point.get("severity"),
+        "audience_profile": audience_profile or None,
+    }
+
+
+def _query_pattern_for_intent(intent_type: str) -> str:
+    intent = intent_type.lower()
+    if "compet" in intent or "comparison" in intent or "gap" in intent:
+        return "competitive_comp"
+    if intent in {"vendor_choice", "goal_vendor_choice"}:
+        return "vendor_choice"
+    if "internal_justification" in intent:
+        return "internal_justification"
+    if "purchase_risk" in intent:
+        return "purchase_risk"
+    if "commercial_terms" in intent:
+        return "commercial_terms"
+    if "vendor" in intent or "category" in intent or "recommendation" in intent or "solution" in intent:
+        return "category_rec"
+    return "scenario_explore"
+
+
+def _journey_stage_for_intent(intent_type: str) -> str:
+    intent = intent_type.lower()
+    if any(marker in intent for marker in ("choice", "justification", "purchase", "commercial", "decision")):
+        return "purchase_decision"
+    if any(marker in intent for marker in ("competitive", "capability", "technical", "data_", "solution")):
+        return "solution_evaluation"
+    return "problem_discovery"
 
 
 def _int_setting(run: dict, key: str, env_name: str, default: int) -> int:

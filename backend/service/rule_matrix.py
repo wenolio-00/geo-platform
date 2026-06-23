@@ -4,6 +4,7 @@ import os
 from uuid import uuid4
 
 DEFAULT_QUERYSET_CANDIDATE_COUNT = 40
+DEFAULT_NEGATIVE_PROBE_COUNT = 12
 
 MATRIX_CELL_ORDER = (
     "problem_discovery:scenario_explore",
@@ -261,7 +262,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "market_landscape",
     },
     {
-        "text": "{entity}和{competitors}在{topic}方面主要区别是什么？",
+        "text": "{topic}领域头部供应商在{topic}方面主要区别是什么？",
         "journey_stage": "solution_evaluation",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -270,7 +271,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "competitive_comparison",
     },
     {
-        "text": "{entity}相比{primary_competitor}，更适合哪些{topic}场景？",
+        "text": "{topic}领域头部供应商更适合哪些{topic}场景？",
         "journey_stage": "solution_evaluation",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -279,7 +280,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "competitive_fit",
     },
     {
-        "text": "{primary_competitor}和{entity}都能做{topic}，选型时怎么区分？",
+        "text": "{topic}领域头部供应商都能做{topic}，选型时怎么区分？",
         "journey_stage": "solution_evaluation",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -288,7 +289,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "competitive_comparison",
     },
     {
-        "text": "{segment}{topic}项目里，{entity}和{secondary_competitor}各有什么优势？",
+        "text": "{segment}{topic}项目里，该领域头部供应商有什么优势？",
         "journey_stage": "solution_evaluation",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -297,7 +298,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "competitive_comparison",
     },
     {
-        "text": "如果已有{primary_competitor}方案，还需要看{entity}的{topic}能力吗？",
+        "text": "如果已有该领域头部供应商方案，还需要关注其他{topic}能力吗？",
         "journey_stage": "solution_evaluation",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -360,7 +361,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "commercial_terms",
     },
     {
-        "text": "最后在{entity}和{primary_competitor}之间选，{topic}该看哪些证据？",
+        "text": "最后在头部供应商之间选，{topic}该看哪些证据？",
         "journey_stage": "purchase_decision",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -369,7 +370,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "competitive_decision",
     },
     {
-        "text": "{entity}、{primary_competitor}、{secondary_competitor}谁更适合{segment}{topic}？",
+        "text": "在{segment}{topic}场景下，谁（哪家）更适合？",
         "journey_stage": "purchase_decision",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -378,7 +379,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "competitive_decision",
     },
     {
-        "text": "如果老板更熟悉{primary_competitor}，怎么客观比较{entity}的{topic}价值？",
+        "text": "如果老板更熟悉头部供应商，怎么客观比较其他{topic}方案的价值？",
         "journey_stage": "purchase_decision",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -423,7 +424,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "market_landscape",
     },
     {
-        "text": "{entity}和{primary_competitor}在接入周期上差异大吗？",
+        "text": "{topic}领域头部供应商在接入周期上差异大吗？",
         "journey_stage": "solution_evaluation",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -468,7 +469,7 @@ MATRIX_TEMPLATES = [
         "intent_type": "commercial_terms",
     },
     {
-        "text": "同样预算下，{entity}和{competitors}谁的{topic}投入产出更清楚？",
+        "text": "同样预算下，各{topic}供应商谁的投入产出更清楚？",
         "journey_stage": "purchase_decision",
         "query_pattern": "competitive_comp",
         "query_layer": "core_anchor",
@@ -533,12 +534,28 @@ MATRIX_TEMPLATES = [
     },
 ]
 
+NEGATIVE_PROBE_TEMPLATES = [
+    "买{topic}最容易踩哪些坑？",
+    "{topic}理赔被拒通常是什么原因？",
+    "{topic}投诉比较多的问题有哪些？",
+    "{topic}退保损失大不大？",
+    "{topic}销售误导常见话术有哪些？",
+    "{topic}等待期和免责条款有哪些隐藏风险？",
+    "{topic}保费交不起中途断缴会怎样？",
+    "{topic}买了后悔的人主要后悔什么？",
+    "{topic}收益不达预期一般卡在哪里？",
+    "{topic}适合哪些人避开？",
+    "{topic}条款太复杂时应该重点防哪些风险？",
+    "{topic}和同类产品比，哪些缺点最影响购买决策？",
+]
+
 
 def generate_rule_matrix_queryset(
     brand_config: dict,
     strategy: str = "rule_matrix_v1",
     candidate_count: int | None = None,
     generation_attempt: int = 1,
+    negative_probe_count: int | None = None,
 ) -> dict:
     topics = _topics(brand_config)  # 返回 [{topic, pain_point, goal}, ...]
     competitors = _competitor_names(brand_config)
@@ -561,6 +578,14 @@ def generate_rule_matrix_queryset(
             goal=topic_ctx.get("goal", ""),
         ))
 
+    negative_probes = _negative_probe_queries(
+        topics,
+        competitors,
+        generation_attempt,
+        negative_probe_count,
+    )
+    queries.extend(negative_probes)
+
     normalized = []
     for index, query in enumerate(queries, start=1):
         normalized.append({"query_id": f"q_{index:03d}", **query})
@@ -574,6 +599,7 @@ def generate_rule_matrix_queryset(
             "default_candidate_count": DEFAULT_QUERYSET_CANDIDATE_COUNT,
             "requested_candidate_count": target_count,
             "effective_candidate_count": len(selected_templates),
+            "negative_probe_count": len(negative_probes),
             "cell_counts": cell_counts,
             "cell_allocation_scores": MATRIX_CELL_ALLOCATION_SCORES,
             "cell_weights": MATRIX_CELL_ALLOCATION_WEIGHTS,
@@ -629,6 +655,16 @@ def _target_candidate_count(candidate_count: int | None) -> int:
     except (TypeError, ValueError):
         configured_count = DEFAULT_QUERYSET_CANDIDATE_COUNT
     return max(1, min(len(MATRIX_TEMPLATES), configured_count))
+
+
+def _target_negative_probe_count(negative_probe_count: int | None) -> int:
+    if negative_probe_count is None:
+        return 0
+    try:
+        configured_count = int(negative_probe_count)
+    except (TypeError, ValueError):
+        configured_count = DEFAULT_NEGATIVE_PROBE_COUNT
+    return max(0, min(len(NEGATIVE_PROBE_TEMPLATES), configured_count))
 
 
 def _available_cell_counts() -> dict[str, int]:
@@ -750,11 +786,49 @@ def _query(
         "query_pattern": query_pattern,
         "matrix_cell_id": matrix_cell_id,
         "intent_type": template["intent_type"],
-        "related_competitors": competitors[:3],
         "lifecycle_status": "active",
         "pain_point": pain_point,
         "goal": goal,
     }
+
+
+def _negative_probe_queries(
+    topics: list[dict],
+    competitors: list[str],
+    generation_attempt: int,
+    negative_probe_count: int | None,
+) -> list[dict]:
+    probe_count = _target_negative_probe_count(negative_probe_count)
+    if probe_count <= 0:
+        return []
+
+    focus = _attempt_focus(generation_attempt)
+    queries: list[dict] = []
+    for index, template in enumerate(NEGATIVE_PROBE_TEMPLATES[:probe_count]):
+        topic_ctx = topics[index % len(topics)]
+        topic = topic_ctx["topic"]
+        text = template.format(topic=_short_name(topic, 16))
+        if focus:
+            text = f"{focus}：{text}"
+        queries.append(
+            {
+                "query_text": text,
+                "query_layer": "adaptive",
+                "run_scope": "production",
+                "metric_scope": "negative_probe",
+                "metric_weight": 0,
+                "journey_stage": "purchase_decision",
+                "topic": topic,
+                "query_pattern": "purchase_risk",
+                "matrix_cell_id": "purchase_decision:purchase_risk",
+                "intent_type": "negative_probe",
+                "lifecycle_status": "active",
+                "pain_point": topic_ctx.get("pain_point", ""),
+                "goal": topic_ctx.get("goal", ""),
+                "sentiment_intent": "negative",
+            }
+        )
+    return queries
 
 
 def _cell_counts(templates: list[dict]) -> dict[str, int]:

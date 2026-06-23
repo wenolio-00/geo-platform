@@ -109,6 +109,11 @@ def _normalize_citations(value: object) -> list[dict]:
                 "domain": domain.lower().replace("www.", ""),
                 "title": item.get("title") if isinstance(item.get("title"), str) else None,
                 "is_official": item.get("is_official") if isinstance(item.get("is_official"), bool) else None,
+                "source_type": item.get("source_type") if isinstance(item.get("source_type"), str) else None,
+                "ownership": item.get("ownership") if isinstance(item.get("ownership"), str) else None,
+                "entity": item.get("entity") if isinstance(item.get("entity"), str) else None,
+                "is_brand_owned": item.get("is_brand_owned") if isinstance(item.get("is_brand_owned"), bool) else None,
+                "is_competitor_owned": item.get("is_competitor_owned") if isinstance(item.get("is_competitor_owned"), bool) else None,
                 "quoted_text": _first_text(item, ["quoted_text", "evidence", "snippet", "content"]),
                 "answer_excerpt": _first_text(item, ["answer_excerpt", "context"]),
             }

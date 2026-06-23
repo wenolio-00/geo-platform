@@ -41,6 +41,8 @@ def _contract():
             "queryset_id": "qs_test",
             "queryset_version": "rule_matrix_v1",
             "aggregation_version": "report_aggregation_v2",
+            "llm_provider": "claude",
+            "web_search_mode": "responses_web_search",
         },
         "optimization_actions": [
             {
@@ -89,7 +91,7 @@ def test_content_generation_prefers_prompt_output_and_sanitizes_meta_lines(monke
     monkeypatch.setattr(cg, "content_versions_store", versions)
     monkeypatch.setattr(cg, "content_feedback_store", feedback)
     monkeypatch.setattr(cg, "effect_attribution_store", attribution)
-    monkeypatch.setattr(cg, "_load_dashboard_contract", lambda brand_id=None: _contract())
+    monkeypatch.setattr(cg, "_load_dashboard_contract", lambda brand_id=None, brand_config_id=None: _contract())
 
     async def fake_invoke_llm_task(**kwargs):
         assert kwargs["task_type"] == "content_generation"
@@ -111,6 +113,8 @@ def test_content_generation_prefers_prompt_output_and_sanitizes_meta_lines(monke
     )
 
     assert draft["generation_source"] == "prompt_driven_backend"
+    assert draft["template_id"]
+    assert draft["effect_attribution"]["template_id"] == draft["template_id"]
     assert "以下为官网正文" not in draft["generated_text"]
     assert "建议围绕" not in draft["generated_text"]
     assert "兑吧聚焦积分商城场景" in draft["generated_text"]
@@ -121,7 +125,12 @@ def test_content_generation_prefers_prompt_output_and_sanitizes_meta_lines(monke
 def test_content_generation_fallback_requires_explicit_opt_in(monkeypatch):
     versions = MemoryStore()
     monkeypatch.setattr(cg, "content_versions_store", versions)
-    monkeypatch.setattr(cg, "_load_dashboard_contract", lambda brand_id=None: _contract())
+    monkeypatch.setattr(cg, "_load_dashboard_contract", lambda brand_id=None, brand_config_id=None: _contract())
+
+    async def fake_sleep(delay):
+        return None
+
+    monkeypatch.setattr(cg.asyncio, "sleep", fake_sleep)
 
     async def failing_invoke_llm_task(**kwargs):
         raise RuntimeError("provider unavailable")
@@ -134,7 +143,7 @@ def test_content_generation_fallback_requires_explicit_opt_in(monkeypatch):
             {"brand_id": "brand_test", "action_id": "action_1", "rule_id": "rule_content"}
         )
     except RuntimeError as error:
-        assert "claude content_generation failed" in str(error)
+        assert "content_generation failed" in str(error)
     else:
         raise AssertionError("expected content generation failure without fallback opt-in")
 
@@ -148,6 +157,38 @@ def test_content_generation_fallback_requires_explicit_opt_in(monkeypatch):
     assert draft["generation_metadata"]["llm_error_type"] == "RuntimeError"
 
 
+def test_content_generation_retries_llm_failures(monkeypatch):
+    calls = []
+    delays = []
+
+    async def fake_invoke_llm_task(**kwargs):
+        calls.append(kwargs)
+        if len(calls) < 3:
+            raise RuntimeError("429 rate limit")
+        return {
+            "provider": "claude",
+            "platform": "claude",
+            "model": "claude-test",
+            "raw_text": "兑吧聚焦积分商城场景，提供稳定的官网内容表达。",
+        }
+
+    async def fake_sleep(delay):
+        delays.append(delay)
+
+    contract = _contract()
+    monkeypatch.setattr(cg, "invoke_llm_task", fake_invoke_llm_task)
+    monkeypatch.setattr(cg.asyncio, "sleep", fake_sleep)
+
+    content, metadata = cg.asyncio.run(
+        cg._generate_with_llm(contract, contract["optimization_actions"][0], contract["cross_topic_rules"][0])
+    )
+
+    assert len(calls) == 3
+    assert delays == [30.0, 60.0]
+    assert "兑吧聚焦积分商城场景" in content
+    assert metadata["provider"] == "claude"
+
+
 def test_content_version_feedback_and_effect_attribution_are_persisted(monkeypatch):
     versions = MemoryStore()
     feedback = MemoryStore()
@@ -155,7 +196,7 @@ def test_content_version_feedback_and_effect_attribution_are_persisted(monkeypat
     monkeypatch.setattr(cg, "content_versions_store", versions)
     monkeypatch.setattr(cg, "content_feedback_store", feedback)
     monkeypatch.setattr(cg, "effect_attribution_store", attribution)
-    monkeypatch.setattr(cg, "_load_dashboard_contract", lambda brand_id=None: _contract())
+    monkeypatch.setattr(cg, "_load_dashboard_contract", lambda brand_id=None, brand_config_id=None: _contract())
     monkeypatch.setattr(
         cg,
         "get_run",
@@ -172,7 +213,10 @@ def test_content_version_feedback_and_effect_attribution_are_persisted(monkeypat
     content_version_id = draft["content_version_id"]
 
     assert content_version_id in versions.read()
+    assert draft["template_id"]
+    assert draft["template_version"]
     assert draft["effect_attribution"]["baseline_run_id"] == "run_before"
+    assert draft["effect_attribution"]["template_version"] == draft["template_version"]
     assert draft["effect_attribution"]["status"] == "awaiting_retest"
 
     result = cg.record_content_feedback(content_version_id, {"signal": "helpful"})

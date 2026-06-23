@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchBrandHistory, fetchDashboardContract } from '../api/geo.js'
+import { FIXED_DIAGNOSTIC_REPORT_URL } from '../config/reportFrontend.js'
 import './DashboardPage.css'
 
 const MAX_LIST_ITEMS = 6
@@ -457,20 +458,23 @@ export default function DashboardPage() {
   const view = useMemo(() => contract ? buildDashboardView(contract) : null, [contract])
 
   function handleOpenReport() {
-    const runId = contract.latest_run_id || contract.diagnostic_run?.run_id || contract.report?.run_id
-    if (!runId) {
-      setError('当前 Dashboard contract 未提供 run_id，请从品牌配置页启动诊断。')
-      return
-    }
-    navigate(`/report/diagnostic?run_id=${encodeURIComponent(runId)}`)
+    window.location.assign(FIXED_DIAGNOSTIC_REPORT_URL)
   }
 
   function handleSelectAction(action) {
     const rules = safeArray(contract.cross_topic_rules)
     const matchedRule = rules.find(rule => safeArray(rule.applies_to).includes(action.action_type)) || rules[0]
     const ruleId = matchedRule?.rule_id || 'rule_content_optimization'
-    navigate(`/content/generate?action_id=${encodeURIComponent(action.action_id)}&rule_id=${encodeURIComponent(ruleId)}`, {
-      state: { actionId: action.action_id, ruleId },
+    const brandId = contract.main_brand?.brand_id
+    const brandConfigId = contract.main_brand?.brand_config_id || contract.brand_config?.brand_config_id
+    const params = new URLSearchParams({
+      action_id: action.action_id,
+      rule_id: ruleId,
+    })
+    if (brandId) params.set('brand_id', brandId)
+    if (brandConfigId) params.set('brand_config_id', brandConfigId)
+    navigate(`/content/generate?${params.toString()}`, {
+      state: { actionId: action.action_id, ruleId, brandId, brandConfigId },
     })
   }
 

@@ -167,14 +167,28 @@ def test_production_queryset_gate_passes_and_records_quality_gate(monkeypatch):
     assert snapshot["governance"]["quality_gate"]["active_count"] == 30
 
 
-def test_production_queryset_gate_honors_min_active_env(monkeypatch):
+def test_production_queryset_gate_ignores_min_active_env_below_floor(monkeypatch):
     monkeypatch.setenv("MIN_ACTIVE_QUERIES", "1")
     queryset = {
         "queryset_id": "qs_dev",
         "queries": [{**_query("银行积分商城系统有哪些成熟供应商？"), "query_id": "q_001"}],
     }
 
+    with pytest.raises(RuntimeError, match="minimum required is 30"):
+        validate_queryset_for_production(queryset)
+
+
+def test_production_queryset_gate_allows_min_active_env_to_raise_floor(monkeypatch):
+    monkeypatch.setenv("MIN_ACTIVE_QUERIES", "31")
+    queryset = {
+        "queryset_id": "qs_ready",
+        "queries": [
+            {**_query(f"银行积分商城系统有哪些成熟供应商{i:02d}？"), "query_id": f"q_{i:03d}"}
+            for i in range(1, 32)
+        ],
+    }
+
     snapshot = validate_queryset_for_production(queryset)
 
-    assert len(snapshot["queries"]) == 1
-    assert snapshot["governance"]["quality_gate"]["min_active_queries"] == 1
+    assert len(snapshot["queries"]) == 31
+    assert snapshot["governance"]["quality_gate"]["min_active_queries"] == 31

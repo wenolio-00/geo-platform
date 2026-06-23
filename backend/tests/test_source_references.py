@@ -7,8 +7,9 @@ def _brand_config() -> dict:
         "entity_id": "entity_test",
         "entity_name": "兑吧",
         "entity_aliases": ["Duiba"],
+        "owned_domains": ["duiba.com.cn"],
         "topics": [{"topic_name": "积分商城", "business_line": "积分商城", "priority": 1}],
-        "competitors": [{"name": "有赞", "aliases": []}],
+        "competitors": [{"name": "有赞", "aliases": [], "owned_domains": ["youzan.com"]}],
     }
 
 
@@ -91,3 +92,27 @@ def test_aggregate_report_exposes_top_url_source_references():
     assert references[1]["citation_count"] == 2
     assert references[0]["references"][0]["inspection_id"] == "insp_001"
     assert references[0]["references"][0]["quoted_text"] == "A 引用 1"
+
+
+def test_aggregate_report_resolves_source_ownership_from_owned_domains():
+    results = [
+        _result(1, "https://www.duiba.com.cn/case", "兑吧官网引用"),
+        _result(2, "https://www.youzan.com/case", "有赞官网引用"),
+        _result(3, "https://www.zhihu.com/question/1", "知乎引用"),
+    ]
+    results[0]["parsed"]["citations"][0]["domain"] = "www.duiba.com.cn"
+    results[1]["parsed"]["citations"][0]["domain"] = "www.youzan.com"
+    results[2]["parsed"]["citations"][0]["domain"] = "www.zhihu.com"
+    for result in results:
+        result["parsed"]["citations"][0]["is_official"] = True
+
+    report = aggregate_report(_run(), _brand_config(), _queryset(), results)
+    by_domain = {row["domain"]: row for row in report["sources"]}
+
+    assert by_domain["duiba.com.cn"]["ownership"] == "brand_owned"
+    assert by_domain["duiba.com.cn"]["type"] == "品牌自有"
+    assert by_domain["youzan.com"]["ownership"] == "competitor_owned"
+    assert by_domain["youzan.com"]["type"] == "竞品自有"
+    assert by_domain["zhihu.com"]["ownership"] == "third_party"
+    assert by_domain["zhihu.com"]["source_type"] == "ugc_community"
+    assert report["global"]["own_citations"] == 1

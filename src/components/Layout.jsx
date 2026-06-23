@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
+import {
+  FIXED_DIAGNOSTIC_REPORT_URL,
+  LATEST_DIAGNOSTIC_REPORT_KEY,
+} from '../config/reportFrontend.js'
 import './Layout.css'
 
-const LATEST_DIAGNOSTIC_REPORT_KEY = 'geo.latestDiagnosticReportUrl'
-
 function getLatestDiagnosticReportUrl() {
-  if (typeof window === 'undefined') return '/report/diagnostic'
-  return window.localStorage.getItem(LATEST_DIAGNOSTIC_REPORT_KEY) || '/report/diagnostic'
+  if (typeof window === 'undefined') return FIXED_DIAGNOSTIC_REPORT_URL
+  if (window.localStorage.getItem(LATEST_DIAGNOSTIC_REPORT_KEY) !== FIXED_DIAGNOSTIC_REPORT_URL) {
+    window.localStorage.setItem(LATEST_DIAGNOSTIC_REPORT_KEY, FIXED_DIAGNOSTIC_REPORT_URL)
+  }
+  return FIXED_DIAGNOSTIC_REPORT_URL
 }
 
 export default function Layout() {
@@ -22,7 +27,7 @@ export default function Layout() {
     }
   }, [])
 
-  const hasDiagnosticReport = diagnosticReportUrl !== '/report/diagnostic'
+  const hasDiagnosticReport = diagnosticReportUrl === FIXED_DIAGNOSTIC_REPORT_URL
 
   return (
     <div className="layout">
@@ -61,6 +66,16 @@ export default function Layout() {
             </svg>
             <span>内容生成</span>
           </NavLink>
+          <NavLink to="/prompt/lab" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 5h16"/>
+              <path d="M4 12h16"/>
+              <path d="M4 19h10"/>
+              <path d="m17 16 3 3"/>
+              <path d="m20 16-3 3"/>
+            </svg>
+            <span>Prompt Lab</span>
+          </NavLink>
           <NavLink to="/monitor/visibility" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -69,15 +84,26 @@ export default function Layout() {
             <span>AI 可见度</span>
           </NavLink>
 
+          <div className="nav-section-label" style={{marginTop: 24}}>迭代</div>
+          <NavLink to="/iteration/priority" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 5h16"/>
+              <path d="M4 12h10"/>
+              <path d="M4 19h7"/>
+              <path d="m16 16 2 2 4-5"/>
+            </svg>
+            <span>迭代优先级</span>
+          </NavLink>
+
           <div className="nav-section-label" style={{marginTop: 24}}>报告</div>
-          <NavLink to={diagnosticReportUrl} className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+          <a href={diagnosticReportUrl} className="nav-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
             <span>诊断报告</span>
             <span className={`nav-badge ${hasDiagnosticReport ? 'ready' : ''}`}>{hasDiagnosticReport ? 'READY' : 'HTML'}</span>
-          </NavLink>
+          </a>
         </nav>
 
         <div className="sidebar-footer">

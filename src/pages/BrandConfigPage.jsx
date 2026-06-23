@@ -1,6 +1,30 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createBrandConfig, prefillBrandConfig, startDiagnosticRun } from "../api/geo.js";
+import { FIXED_DIAGNOSTIC_REPORT_URL, LATEST_DIAGNOSTIC_REPORT_KEY } from "../config/reportFrontend.js";
+
+const STORAGE_KEY = "geo-brand-config-draft";
+function encodeState(data) {
+  try { return btoa(encodeURIComponent(JSON.stringify(data))); } catch { return ""; }
+}
+function decodeState(str) {
+  try { return JSON.parse(decodeURIComponent(atob(str))); } catch { return null; }
+}
+function getShareUrl(data, viewOnly = false) {
+  const encoded = encodeState(data);
+  const base = `${window.location.origin}${window.location.pathname}`;
+  return `${base}#d=${encoded}${viewOnly ? "&view=1" : ""}`;
+}
+function readHashState() {
+  const hash = window.location.hash.slice(1);
+  const parts = Object.fromEntries(hash.split("&").map(p => { const i = p.indexOf("="); return i > -1 ? [p.slice(0,i), p.slice(i+1)] : [p,""]; }));
+  return { data: parts.d ? decodeState(parts.d) : null, isView: parts.view === "1" };
+}
+function saveToStorage(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+function loadFromStorage() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
+}
 
 const T = {
   bg: "#fbfbfd", surface: "#ffffff", surfaceAlt: "#f5f5f7",
@@ -68,7 +92,7 @@ function Field({ label, sub, children, style }) {
 function Btn({ children, onClick, variant="primary", style, disabled }) {
   const base = { padding:"12px 24px", borderRadius:980, fontSize:14, fontWeight:500, fontFamily:ff,
     cursor:disabled?"default":"pointer", border:"none", transition:"all .25s",
-    display:"inline-flex", alignItems:"center", gap:6, opacity:disabled?.35:1 };
+    display:"inline-flex", alignItems:"center", gap:6, opacity:disabled ? .35 : 1 };
   const v = { primary:{background:T.accent,color:"#fff"},
     secondary:{background:T.surfaceAlt,color:T.text,border:`1px solid ${T.borderLt}`},
     green:{background:T.green,color:"#fff"} };
@@ -103,34 +127,90 @@ const QUERYSET_POLICY_OPTIONS = [
   { value:"reuse_latest", title:"默认复用上次 QuerySet", desc:"适合不定期回检，保持指标口径可比。" },
   { value:"create_new_version", title:"生成新 QuerySet 版本", desc:"适合品牌配置或业务重点变化，并在报告 lineage 中记录变更原因。" },
 ];
+const QUERYSET_GENERATION_MODE_OPTIONS = [
+  { value:"intent_enhanced", title:"意图增强版", desc:"在矩阵候选前注入痛点驱动问题，用于验证业务场景贴合度。" },
+  { value:"matrix_only", title:"原矩阵版", desc:"只使用原矩阵生成逻辑，不注入 intent analysis 问题。" },
+];
 const DEFAULT_INSPECTION_PLATFORMS = [];
 
 /* ── Smart Prefill ── */
 function SmartPrefill({ onPrefill }) {
   const [url,setUrl]=useState("");
   const [file,setFile]=useState(null);
-  const [phase,setPhase]=useState("idle");
+  const [phase,setPhase]=useState("idle"); // idle | parsing | done | error
   const [progress,setProgress]=useState(0);
   const [stepLabel,setStepLabel]=useState("");
   const [filledFields,setFilledFields]=useState([]);
+  const [errorMsg,setErrorMsg]=useState("");
   const fileRef=useRef(null);
+  const abortRef=useRef(null);
 
-  const STS=[{label:"抓取页面内容",pct:18},{label:"识别企业信息",pct:35},
-    {label:"提取话题",pct:55},{label:"匹配竞品",pct:75},{label:"验证与填充",pct:100}];
-  const FS=["企业名称","品牌别名","行业细分","话题配置","竞品识别"];
+  const STAGES=[
+    {label:"抓取页面内容",pct:20},
+    {label:"识别企业信息",pct:40},
+    {label:"提取话题配置",pct:60},
+    {label:"匹配竞品",pct:80},
+    {label:"验证与填充",pct:95},
+  ];
+
+  const tickProgress=async(stages)=>{
+    for(const s of stages){
+      await new Promise(r=>setTimeout(r,400+Math.random()*300));
+      setProgress(s.pct); setStepLabel(s.label);
+    }
+  };
+
+  const readFileText=file=>new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>resolve(e.target.result);
+    reader.onerror=()=>reject(new Error("文件读取失败"));
+    reader.readAsText(file,"utf-8");
+  });
 
   const start=async()=>{
     if(!url&&!file)return;
-    setPhase("parsing");setProgress(0);setFilledFields([]);
-    for(let i=0;i<STS.length;i++){
-      await new Promise(r=>setTimeout(r,500+Math.random()*350));
-      setProgress(STS[i].pct);setStepLabel(STS[i].label);
-      setFilledFields(FS.slice(0,i+1));
+    setPhase("parsing");setProgress(0);setFilledFields([]);setErrorMsg("");
+    abortRef.current?.abort();
+    const abort=new AbortController();
+    abortRef.current=abort;
+
+    const tickPromise=tickProgress(STAGES);
+    try{
+      let payload={};
+      if(file){
+        let text="";
+        try{ text=await readFileText(file); }catch(e){ text=""; }
+        payload={ source_text:text, source_name:file.name };
+      } else {
+        payload={ website_url:url, source_url:url };
+      }
+      const [result]=await Promise.all([
+        prefillBrandConfig(payload,{signal:abort.signal}),
+        tickPromise,
+      ]);
+      setProgress(100);
+      const filled=[];
+      if(result.entity_name) filled.push("企业名称");
+      if(result.entity_aliases?.length) filled.push("品牌别名");
+      if(result.industry_segments?.length) filled.push("行业细分");
+      if(result.topics?.length) filled.push("话题配置");
+      if(result.competitors?.length) filled.push("竞品识别");
+      setFilledFields(filled);
+      setPhase("done");
+      onPrefill(result);
+    }catch(err){
+      if(err?.name==="AbortError") return;
+      setPhase("error");
+      setErrorMsg(err?.message||"解析失败，请检查 URL 或网络连接。");
     }
-    await new Promise(r=>setTimeout(r,250));
-    setPhase("done");onPrefill(DUIBA);
   };
-  const isDone=phase==="done", isParsing=phase==="parsing";
+
+  const reset=()=>{
+    abortRef.current?.abort();
+    setPhase("idle");setProgress(0);setStepLabel("");setFilledFields([]);setErrorMsg("");
+  };
+
+  const isDone=phase==="done", isParsing=phase==="parsing", isError=phase==="error";
 
   return (
     <div style={{ background:T.surface, borderRadius:20,
@@ -171,8 +251,10 @@ function SmartPrefill({ onPrefill }) {
         </div>
       </div>
       <div style={{marginTop:20,display:"flex",alignItems:"center",gap:20}}>
-        <Btn onClick={start} disabled={isParsing||(!url&&!file)} variant={isDone?"green":"primary"}>
-          {isParsing?"解析中…":isDone?"✓ 已填充":"开始解析"}
+        <Btn onClick={start}
+             disabled={isParsing||(!url&&!file)}
+             variant={isDone?"green":"primary"}>
+          {isParsing?"解析中…":isDone?"✓ 已填充":isError?"重新解析":"开始解析"}
         </Btn>
         {isParsing&&(
           <div style={{flex:1,maxWidth:360}}>
@@ -187,7 +269,17 @@ function SmartPrefill({ onPrefill }) {
           </div>
         )}
       </div>
-      {filledFields.length>0&&(
+      {isError&&(
+        <div style={{ marginTop:16,padding:"12px 18px",borderRadius:14,
+          background:"#fff1f0",border:`1px solid ${T.red}22`,
+          fontSize:13,color:"#a8071a",lineHeight:1.5,display:"flex",gap:12,alignItems:"center" }}>
+          <span style={{fontSize:16}}>⚠</span>
+          <span style={{flex:1}}>{errorMsg}</span>
+          <button onClick={reset} style={{ border:"none",background:"transparent",
+            color:"#a8071a",cursor:"pointer",fontWeight:600,fontSize:13,padding:"2px 8px" }}>重试</button>
+        </div>
+      )}
+      {filledFields.length>0&&!isError&&(
         <div style={{marginTop:20}}>
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
             {filledFields.map((f,i)=>(
@@ -198,8 +290,11 @@ function SmartPrefill({ onPrefill }) {
           </div>
           {isDone&&(
             <div style={{ marginTop:14,padding:"12px 18px",borderRadius:14,
-              background:T.greenBg,fontSize:13,color:T.greenTxt,lineHeight:1.5 }}>
-              已从 <strong>{url||file?.name}</strong> 解析并填充 {filledFields.length} 组配置。请检查下方各项并按需调整。
+              background:T.greenBg,fontSize:13,color:T.greenTxt,lineHeight:1.5,
+              display:"flex",gap:10,alignItems:"center",justifyContent:"space-between" }}>
+              <span>已从 <strong>{url||file?.name}</strong> 解析并填充 {filledFields.length} 组配置。请检查下方各项并按需调整。</span>
+              <button onClick={reset} style={{ border:"none",background:"transparent",
+                color:T.greenTxt,cursor:"pointer",opacity:.6,fontSize:13,flexShrink:0 }}>重新解析</button>
             </div>
           )}
         </div>
@@ -315,15 +410,144 @@ const STEPS = [
   { id:"competitors", label:"竞品配置" },
 ];
 
+/* ── View Mode ── */
+function ViewMode({ data }) {
+  const chip = (txt, i) => (
+    <span key={i} style={{ padding:"4px 12px", borderRadius:980, fontSize:13, fontWeight:500,
+      background:T.accentBg, color:T.accent, display:"inline-block" }}>{txt}</span>
+  );
+  const card = (children, key) => (
+    <div key={key} style={{ padding:"18px 20px", background:T.surfaceAlt, borderRadius:16,
+      border:`1px solid ${T.borderLt}`, marginBottom:12 }}>{children}</div>
+  );
+  const row = (label, value) => value ? (
+    <div style={{ display:"flex", gap:8, marginBottom:8, fontSize:14 }}>
+      <span style={{ color:T.textSec, minWidth:90, flexShrink:0 }}>{label}</span>
+      <span style={{ color:T.text, fontWeight:500 }}>{value}</span>
+    </div>
+  ) : null;
+
+  return (
+    <div style={{ animation:"fadeUp .35s ease" }}>
+      {/* 企业信息 */}
+      <div style={{ marginBottom:32 }}>
+        <div style={{ fontSize:13, fontWeight:600, color:T.textSec, textTransform:"uppercase",
+          letterSpacing:.5, marginBottom:14 }}>企业信息</div>
+        {card(<>
+          {row("企业全称", data.entity_name || "—")}
+          {data.entity_aliases?.length > 0 && (
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:8 }}>
+              <span style={{ color:T.textSec, fontSize:14, minWidth:90 }}>品牌别名</span>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>{data.entity_aliases.map(chip)}</div>
+            </div>
+          )}
+          {data.industry_segments?.length > 0 && (
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              <span style={{ color:T.textSec, fontSize:14, minWidth:90 }}>行业细分</span>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>{data.industry_segments.map(chip)}</div>
+            </div>
+          )}
+        </>)}
+      </div>
+
+      {/* 话题 */}
+      {data.topics?.filter(t=>t.topic_name).length > 0 && (
+        <div style={{ marginBottom:32 }}>
+          <div style={{ fontSize:13, fontWeight:600, color:T.textSec, textTransform:"uppercase",
+            letterSpacing:.5, marginBottom:14 }}>话题配置</div>
+          {data.topics.filter(t=>t.topic_name).map((t,i) => card(<>
+            <div style={{ fontSize:15, fontWeight:600, color:T.text, marginBottom:10 }}>
+              {t.priority ? `${t.priority}. ` : ""}{t.topic_name}
+              {t.business_line && <span style={{ marginLeft:8, fontSize:12, padding:"2px 10px",
+                borderRadius:980, background:T.accentBg, color:T.accent, fontWeight:500 }}>{t.business_line}</span>}
+            </div>
+            {row("痛点", t.pain_point)}
+            {row("目标", t.goal)}
+          </>, i))}
+        </div>
+      )}
+
+      {/* 竞品 */}
+      {data.competitors?.filter(c=>c.name).length > 0 && (
+        <div style={{ marginBottom:32 }}>
+          <div style={{ fontSize:13, fontWeight:600, color:T.textSec, textTransform:"uppercase",
+            letterSpacing:.5, marginBottom:14 }}>竞品配置</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:12 }}>
+            {data.competitors.filter(c=>c.name).map((c,i) => (
+              <div key={i} style={{ padding:"16px 18px", background:T.surfaceAlt, borderRadius:16,
+                border:`1px solid ${T.borderLt}` }}>
+                <div style={{ fontSize:15, fontWeight:600, color:T.text, marginBottom:6 }}>{c.name}</div>
+                {c.category && <div style={{ fontSize:13, color:T.textSec, marginBottom:6 }}>{c.category}</div>}
+                {c.business_line && <div style={{ fontSize:13, color:T.textTer }}>{c.business_line}</div>}
+                {c.aliases?.length > 0 && (
+                  <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginTop:8 }}>
+                    {c.aliases.map((a,j) => <span key={j} style={{ fontSize:11, padding:"2px 8px",
+                      borderRadius:980, background:T.surfaceAlt, color:T.textSec,
+                      border:`1px solid ${T.borderLt}` }}>{a}</span>)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Share Button ── */
+function ShareBtn({ data, viewOnly = false, label, greenOnCopy = false }) {
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(() => {
+    navigator.clipboard.writeText(getShareUrl(data, viewOnly)).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [data, viewOnly]);
+  const active = copied && greenOnCopy;
+  return (
+    <button onClick={copy} style={{
+      display:"inline-flex", alignItems:"center", gap:6,
+      padding:"8px 16px", borderRadius:980, fontSize:13, fontWeight:500,
+      fontFamily:ff, cursor:"pointer",
+      border:`1px solid ${active ? T.green+"66" : T.borderLt}`,
+      background: active ? T.greenBg : T.surface,
+      color: active ? T.greenTxt : T.textSec,
+      transition:"all .25s" }}>
+      {copied ? "✓ 已复制" : label}
+    </button>
+  );
+}
+
 /* ── Main ── */
 export default function BrandConfigPage() {
   const [step,setStep]=useState(0);
-  const [data,setData]=useState(EMPTY);
+  const initialHash = readHashState();
+  const [data,setData]=useState(()=> initialHash.data || loadFromStorage() || EMPTY);
+  const [isEditing,setIsEditing]=useState(false);
   const [submitting,setSubmitting]=useState(false);
   const [submitError,setSubmitError]=useState("");
   const [querysetPolicy,setQuerysetPolicy]=useState("reuse_latest");
   const [querysetChangeReason,setQuerysetChangeReason]=useState("scheduled_retest");
-  const navigate = useNavigate();
+  const [querysetGenerationMode,setQuerysetGenerationMode]=useState("intent_enhanced");
+  const [savedFlash,setSavedFlash]=useState(false);
+
+  // keep URL hash in sync (debounced)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const encoded = encodeState(data);
+      const view = isEditing ? "" : "&view=1";
+      history.replaceState(null, "", `${window.location.pathname}#d=${encoded}${view}`);
+    }, 600);
+    return () => clearTimeout(id);
+  }, [data, isEditing]);
+
+  const handleSave = () => {
+    saveToStorage(data);
+    setIsEditing(false);
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2000);
+  };
 
   const handlePrefill=fill=>setData(prev=>({...prev,...fill}));
   const buildPayload=()=>({
@@ -369,6 +593,9 @@ export default function BrandConfigPage() {
         queryset_change_reason:querysetChangeReason.trim() || (querysetPolicy==="reuse_latest" ? "scheduled_retest" : "brand_config_update"),
         inspection_mode:"multi_platform_live_v1",
         web_search_enabled:true,
+        generation_constraints:{
+          queryset_generation_mode:querysetGenerationMode,
+        },
       };
       if(DEFAULT_INSPECTION_PLATFORMS.length){
         runPayload.platforms=DEFAULT_INSPECTION_PLATFORMS;
@@ -376,10 +603,10 @@ export default function BrandConfigPage() {
       const run=await startDiagnosticRun(runPayload);
       const runId=run?.run_id;
       if(!runId) throw new Error("后端未返回 run_id");
-      const reportUrl=`/report/diagnostic?run_id=${encodeURIComponent(runId)}`;
-      window.localStorage.setItem("geo.latestDiagnosticReportUrl", reportUrl);
+      const reportUrl=FIXED_DIAGNOSTIC_REPORT_URL;
+      window.localStorage.setItem(LATEST_DIAGNOSTIC_REPORT_KEY, reportUrl);
       window.dispatchEvent(new Event("geo:diagnostic-report-updated"));
-      navigate(reportUrl);
+      window.location.assign(reportUrl);
     }catch(error){
       setSubmitError(error?.message||"诊断任务启动失败，请检查后端服务。");
     }finally{
@@ -398,98 +625,127 @@ export default function BrandConfigPage() {
         button:active{transform:scale(.97)}
       `}</style>
 
-      {/* navbar */}
-      <div style={{ position:"sticky",top:0,zIndex:10,
-        background:"rgba(251,251,253,0.82)",
-        backdropFilter:"saturate(180%) blur(20px)",
-        WebkitBackdropFilter:"saturate(180%) blur(20px)",
-        borderBottom:`0.5px solid ${T.borderLt}` }}>
-        <div style={{ maxWidth:800,margin:"0 auto",padding:"14px 24px",
-          display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{ width:28,height:28,borderRadius:7,background:T.accent,
-              display:"flex",alignItems:"center",justifyContent:"center",
-              fontSize:14,color:"#fff",fontWeight:700 }}>G</div>
-            <span style={{fontSize:15,fontWeight:600,letterSpacing:-.3,color:T.text}}>GEO Platform</span>
-            <span style={{fontSize:12,color:T.textTer,marginLeft:4}}>品牌配置</span>
-          </div>
-          <div style={{fontSize:12,color:T.textTer}}>步骤 {step+1} / {STEPS.length}</div>
-        </div>
-      </div>
-
       <div style={{ maxWidth:800,margin:"0 auto",padding:"36px 24px 80px" }}>
         {/* header */}
-        <div style={{ marginBottom:36, animation:"fadeUp .5s ease" }}>
-          <h1 style={{ fontSize:36,fontWeight:700,letterSpacing:-.8,color:T.text,lineHeight:1.15,margin:0 }}>品牌配置</h1>
-          <p style={{ fontSize:17,color:T.textSec,marginTop:8,lineHeight:1.5,fontWeight:400 }}>
-            配置品牌信息、话题与竞品，生成 GEO 诊断报告。
-          </p>
-        </div>
-
-        <SmartPrefill onPrefill={handlePrefill} />
-
-        {/* tabs */}
-        <div style={{ display:"flex",gap:6,marginBottom:32,borderBottom:`1px solid ${T.borderLt}` }}>
-          {STEPS.map((s,i)=>{
-            const active=step===i;
-            return <button key={s.id} onClick={()=>setStep(i)} style={{
-              padding:"12px 20px",fontSize:14,fontWeight:active?600:400,
-              fontFamily:ff,color:active?T.accent:T.textSec,
-              background:"transparent",border:"none",cursor:"pointer",
-              borderBottom:`2px solid ${active?T.accent:"transparent"}`,
-              transition:"all .25s",marginBottom:-1 }}>{s.label}</button>;
-          })}
-        </div>
-
-        {/* content */}
-        <div key={step} style={{ animation:"fadeUp .35s ease" }}>
-          {step===0&&<StepCompany data={data} set={setData} />}
-          {step===1&&<StepTopics topics={data.topics} set={v=>setData({...data,topics:v})} />}
-          {step===2&&<StepCompetitors competitors={data.competitors} set={v=>setData({...data,competitors:v})} />}
-        </div>
-
-        {/* nav */}
-        {submitError&&(
-          <div style={{ marginTop:22,padding:"12px 16px",borderRadius:14,
-            background:"#fff1f0",border:"1px solid #ffccc7",color:"#a8071a",
-            fontSize:13,lineHeight:1.5 }}>
-            {submitError}
+        <div style={{ marginBottom:36, animation:"fadeUp .5s ease",
+          display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:16 }}>
+          <div>
+            <h1 style={{ fontSize:32,fontWeight:700,letterSpacing:-.8,color:T.text,lineHeight:1.15,margin:0 }}>品牌配置</h1>
+            <p style={{ fontSize:15,color:T.textSec,marginTop:6,lineHeight:1.5,fontWeight:400 }}>
+              配置品牌信息、话题与竞品，生成 GEO 诊断报告。
+            </p>
           </div>
-        )}
-        {step===STEPS.length-1&&(
-          <div style={{ marginTop:22,padding:"16px",borderRadius:18,
-            background:T.surface,border:`1px solid ${T.borderLt}` }}>
-            <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:10 }}>QuerySet 版本治理</div>
-            <div style={{ display:"grid",gap:10 }}>
-              {QUERYSET_POLICY_OPTIONS.map(option=>(
-                <label key={option.value} style={{ display:"flex",gap:10,padding:"12px",borderRadius:14,
-                  border:`1px solid ${querysetPolicy===option.value?T.accent:T.borderLt}`,
-                  background:querysetPolicy===option.value?T.accentBg:T.surfaceAlt,cursor:"pointer" }}>
-                  <input type="radio" checked={querysetPolicy===option.value} disabled={submitting}
-                    onChange={()=>setQuerysetPolicy(option.value)} />
-                  <span>
-                    <span style={{ display:"block",fontSize:13,fontWeight:600,color:T.text }}>{option.title}</span>
-                    <span style={{ display:"block",fontSize:12,color:T.textSec,lineHeight:1.45,marginTop:2 }}>{option.desc}</span>
-                  </span>
-                </label>
-              ))}
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,paddingTop:4}}>
+            {isEditing ? (
+              <>
+                <button onClick={handleSave} style={{
+                  padding:"9px 20px", borderRadius:980, fontSize:13, fontWeight:600,
+                  fontFamily:ff, cursor:"pointer", border:"none",
+                  background: savedFlash ? T.green : T.accent, color:"#fff", transition:"all .25s" }}>
+                  {savedFlash ? "✓ 已保存" : "保存"}
+                </button>
+                <button onClick={()=>setIsEditing(false)} style={{
+                  padding:"9px 16px", borderRadius:980, fontSize:13, fontWeight:500,
+                  fontFamily:ff, cursor:"pointer", border:`1px solid ${T.borderLt}`,
+                  background:T.surface, color:T.textSec, transition:"all .25s" }}>取消</button>
+              </>
+            ) : (
+              <>
+                <button onClick={()=>setIsEditing(true)} style={{
+                  padding:"9px 18px", borderRadius:980, fontSize:13, fontWeight:500,
+                  fontFamily:ff, cursor:"pointer", border:`1px solid ${T.borderLt}`,
+                  background:T.surface, color:T.text, transition:"all .25s" }}>编辑</button>
+                <ShareBtn data={data} viewOnly={false} label="分享可编辑版" />
+                <ShareBtn data={data} viewOnly={true} label="分享干净版" greenOnCopy={true} />
+              </>
+            )}
+          </div>
+        </div>
+
+        {isEditing && <SmartPrefill onPrefill={handlePrefill} />}
+
+        {!isEditing ? (
+          <ViewMode data={data} />
+        ) : (<>
+          {/* tabs */}
+          <div style={{ display:"flex",gap:6,marginBottom:32,borderBottom:`1px solid ${T.borderLt}` }}>
+            {STEPS.map((s,i)=>{
+              const active=step===i;
+              return <button key={s.id} onClick={()=>setStep(i)} style={{
+                padding:"12px 20px",fontSize:14,fontWeight:active?600:400,
+                fontFamily:ff,color:active?T.accent:T.textSec,
+                background:"transparent",border:"none",cursor:"pointer",
+                borderBottom:`2px solid ${active?T.accent:"transparent"}`,
+                transition:"all .25s",marginBottom:-1 }}>{s.label}</button>;
+            })}
+          </div>
+
+          {/* content */}
+          <div key={step} style={{ animation:"fadeUp .35s ease" }}>
+            {step===0&&<StepCompany data={data} set={setData} />}
+            {step===1&&<StepTopics topics={data.topics} set={v=>setData({...data,topics:v})} />}
+            {step===2&&<StepCompetitors competitors={data.competitors} set={v=>setData({...data,competitors:v})} />}
+          </div>
+
+          {/* nav */}
+          {submitError&&(
+            <div style={{ marginTop:22,padding:"12px 16px",borderRadius:14,
+              background:"#fff1f0",border:"1px solid #ffccc7",color:"#a8071a",
+              fontSize:13,lineHeight:1.5 }}>
+              {submitError}
             </div>
-            <Field label="变更原因" sub="会写入 report lineage，便于追踪回检或新版本生成原因。" style={{ marginTop:14,marginBottom:0 }}>
-              <Input value={querysetChangeReason} disabled={submitting}
-                onChange={setQuerysetChangeReason}
-                placeholder={querysetPolicy==="reuse_latest"?"scheduled_retest":"brand_config_update"} />
-            </Field>
-          </div>
-        )}
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",
-          marginTop:36,paddingTop:24,borderTop:`1px solid ${T.borderLt}` }}>
-          <Btn variant="secondary" onClick={()=>setStep(step-1)} disabled={step===0||submitting}>← 上一步</Btn>
-          {step<STEPS.length-1?(
-            <Btn onClick={()=>setStep(step+1)} disabled={submitting}>下一步 →</Btn>
-          ):(
-            <Btn onClick={handleGenerateReport} disabled={submitting}>{submitting?"正在启动诊断…":"生成诊断报告"}</Btn>
           )}
-        </div>
+          {step===STEPS.length-1&&(
+            <div style={{ marginTop:22,padding:"16px",borderRadius:18,
+              background:T.surface,border:`1px solid ${T.borderLt}` }}>
+              <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:10 }}>QuerySet 版本治理</div>
+              <div style={{ fontSize:13,fontWeight:600,color:T.text,margin:"4px 0 10px" }}>生成模式</div>
+              <div style={{ display:"grid",gap:10,marginBottom:16 }}>
+                {QUERYSET_GENERATION_MODE_OPTIONS.map(option=>(
+                  <label key={option.value} style={{ display:"flex",gap:10,padding:"12px",borderRadius:14,
+                    border:`1px solid ${querysetGenerationMode===option.value?T.accent:T.borderLt}`,
+                    background:querysetGenerationMode===option.value?T.accentBg:T.surfaceAlt,cursor:"pointer" }}>
+                    <input type="radio" checked={querysetGenerationMode===option.value} disabled={submitting}
+                      onChange={()=>setQuerysetGenerationMode(option.value)} />
+                    <span>
+                      <span style={{ display:"block",fontSize:13,fontWeight:600,color:T.text }}>{option.title}</span>
+                      <span style={{ display:"block",fontSize:12,color:T.textSec,lineHeight:1.45,marginTop:2 }}>{option.desc}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:10 }}>版本策略</div>
+              <div style={{ display:"grid",gap:10 }}>
+                {QUERYSET_POLICY_OPTIONS.map(option=>(
+                  <label key={option.value} style={{ display:"flex",gap:10,padding:"12px",borderRadius:14,
+                    border:`1px solid ${querysetPolicy===option.value?T.accent:T.borderLt}`,
+                    background:querysetPolicy===option.value?T.accentBg:T.surfaceAlt,cursor:"pointer" }}>
+                    <input type="radio" checked={querysetPolicy===option.value} disabled={submitting}
+                      onChange={()=>setQuerysetPolicy(option.value)} />
+                    <span>
+                      <span style={{ display:"block",fontSize:13,fontWeight:600,color:T.text }}>{option.title}</span>
+                      <span style={{ display:"block",fontSize:12,color:T.textSec,lineHeight:1.45,marginTop:2 }}>{option.desc}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <Field label="变更原因" sub="会写入 report lineage，便于追踪回检或新版本生成原因。" style={{ marginTop:14,marginBottom:0 }}>
+                <Input value={querysetChangeReason} disabled={submitting}
+                  onChange={setQuerysetChangeReason}
+                  placeholder={querysetPolicy==="reuse_latest"?"scheduled_retest":"brand_config_update"} />
+              </Field>
+            </div>
+          )}
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",
+            marginTop:36,paddingTop:24,borderTop:`1px solid ${T.borderLt}` }}>
+            <Btn variant="secondary" onClick={()=>setStep(step-1)} disabled={step===0||submitting}>← 上一步</Btn>
+            {step<STEPS.length-1?(
+              <Btn onClick={()=>setStep(step+1)} disabled={submitting}>下一步 →</Btn>
+            ):(
+              <Btn onClick={handleGenerateReport} disabled={submitting}>{submitting?"正在启动诊断…":"生成诊断报告"}</Btn>
+            )}
+          </div>
+        </>)}
       </div>
     </div>
   );

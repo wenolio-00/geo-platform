@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -9,7 +10,13 @@ from service.aggregator import aggregate_report
 from service.brand_config import get_brand_config
 from service.dashboard_snapshots import persist_dashboard_snapshot
 from service.platform_registry import create_platform_clients, requested_platforms, validate_platform_clients
-from service.queryset import QuerySetGenerationFailed, generate_queryset
+from service.queryset import (
+    DEFAULT_QUERYSET_GENERATION_MODE,
+    QuerySetGenerationFailed,
+    generate_queryset,
+    queryset_generation_mode,
+    validate_run_queryset_thresholds,
+)
 from service.queryset_library import (
     active_queries_from,
     latest_frozen_queryset,
@@ -22,9 +29,13 @@ from service.storage import inspection_results_store, runs_store
 
 DEFAULT_INSPECTION_TASK_TIMEOUT_SECONDS = 90
 DEFAULT_MIN_INSPECTION_COMPLETION_RATE = 0.8
+RETRIABLE_INSPECTION_ERROR_TYPES = {"timeout", "provider_error", "rate_limited"}
 ACTIVE_RUN_STATUSES = {"queued", "running", "aggregating"}
+RECOVERABLE_INTERRUPTED_REASONS = {"process_restart", "task_cancelled"}
 INTERRUPTED_MESSAGE = "Diagnostic run interrupted by server restart"
 INTERRUPTED_ERROR = "Background task was lost during process restart/reload before completion."
+RECOVERED_MESSAGE = "Diagnostic run recovered after server restart"
+logger = logging.getLogger(__name__)
 
 
 def create_run(
@@ -67,6 +78,7 @@ def create_run(
         "updated_at": now,
         "report_data": None,
     }
+    validate_run_queryset_thresholds(run)
     return runs_store.upsert(run_id, run)
 
 
@@ -106,9 +118,17 @@ async def run_diagnostic_job(run_id: str) -> None:
 
         quality_gate = _inspection_quality_gate(completed_results, failed_results)
         if quality_gate["status"] != "pass":
-            first_error = next((r.get("error") for r in failed_results if r.get("error")), None)
-            detail = f" First failure: {first_error}" if first_error else ""
-            raise RuntimeError(f"{quality_gate['message']}.{detail}")
+            original_quality_gate = quality_gate
+            original_first_error = next((r.get("error") for r in failed_results if r.get("error")), None)
+            results = await _retry_failed_samples(run_id, clients, queries, brand_config, results)
+            completed_results = [r for r in results if r.get("status") == "completed"]
+            failed_results = [r for r in results if r.get("status") == "failed"]
+            quality_gate = _inspection_quality_gate(completed_results, failed_results)
+            quality_gate["retry_attempted"] = True
+            quality_gate["pre_retry_quality_gate"] = original_quality_gate
+            if quality_gate["status"] != "pass":
+                detail = f" First failure: {original_first_error}" if original_first_error else ""
+                raise RuntimeError(f"{original_quality_gate['message']}.{detail}")
 
         completed = datetime.now(timezone.utc).isoformat()
         run = runs_store.get(run_id) or run
@@ -183,6 +203,46 @@ def reconcile_interrupted_runs() -> list[str]:
     return interrupted_run_ids
 
 
+def recover_active_runs_after_restart() -> list[str]:
+    recovered_run_ids: list[str] = []
+    for run_id, run in runs_store.read().items():
+        if not isinstance(run, dict) or not _should_recover_run_after_restart(run):
+            continue
+        recovery_attempt_count = int(run.get("recovery_attempt_count") or 0)
+        max_attempts = _max_recovery_attempts()
+        if recovery_attempt_count >= max_attempts:
+            _mark_run_interrupted(str(run_id), terminal_reason="recovery_attempts_exhausted")
+            continue
+        _update_run(
+            str(run_id),
+            {
+                "status": "queued",
+                "progress": 0,
+                "message": RECOVERED_MESSAGE,
+                "recovered_after_restart": True,
+                "last_recovery_reason": "process_restart",
+                "recovery_attempt_count": recovery_attempt_count + 1,
+                "error": None,
+                "terminal_reason": None,
+                "retriable": None,
+            },
+        )
+        recovered_run_ids.append(str(run_id))
+    return recovered_run_ids
+
+
+def _should_recover_run_after_restart(run: dict) -> bool:
+    status = run.get("status")
+    if status in ACTIVE_RUN_STATUSES:
+        return True
+    if status != "interrupted":
+        return False
+    if isinstance(run.get("report_data"), dict):
+        return False
+    terminal_reason = str(run.get("terminal_reason") or "")
+    return run.get("retriable") is True and terminal_reason in RECOVERABLE_INTERRUPTED_REASONS
+
+
 def _mark_run_interrupted(run_id: str, terminal_reason: str) -> dict:
     return _update_run(
         run_id,
@@ -197,18 +257,104 @@ def _mark_run_interrupted(run_id: str, terminal_reason: str) -> dict:
     )
 
 
+def _max_recovery_attempts() -> int:
+    raw = os.getenv("MAX_DIAGNOSTIC_RECOVERY_ATTEMPTS")
+    try:
+        value = int(raw) if raw else 2
+    except ValueError:
+        value = 2
+    return max(0, value)
+
+
 async def _inspect_queries(
     run_id: str,
     clients: list,
     queries: list[dict],
     brand_config: dict,
 ) -> list[dict]:
-    platforms = [getattr(client, "platform", str(client)) for client in clients]
     max_concurrency = max(1, int(os.getenv("MAX_CONCURRENCY", "4")))
+    samples = [(client, query) for client in clients for query in queries]
+    return await _inspect_samples(
+        run_id,
+        samples,
+        brand_config,
+        max_concurrency=max_concurrency,
+        progress_start=5,
+        progress_span=85,
+        progress_cap=90,
+        message_prefix="Inspecting",
+    )
+
+
+async def _retry_failed_samples(
+    run_id: str,
+    clients: list,
+    queries: list[dict],
+    brand_config: dict,
+    results: list[dict],
+) -> list[dict]:
+    retry_samples = _retry_samples(clients, queries, results)
+    if not retry_samples:
+        logger.info("inspection_retry_skipped", extra={"run_id": run_id, "reason": "no_retriable_failures"})
+        return results
+
+    logger.info("inspection_retry_started", extra={"run_id": run_id, "retry_sample_count": len(retry_samples)})
+    _update_run(
+        run_id,
+        {
+            "status": "running",
+            "progress": 90,
+            "message": f"Retrying failed inspections 0/{len(retry_samples)}",
+        },
+    )
+    retry_results = await _inspect_samples(
+        run_id,
+        retry_samples,
+        brand_config,
+        max_concurrency=1,
+        progress_start=90,
+        progress_span=1,
+        progress_cap=91,
+        message_prefix="Retrying failed inspections",
+        persist_base_results=results,
+    )
+    merged = _merge_retry_results(results, retry_results)
+    logger.info(
+        "inspection_retry_completed",
+        extra={
+            "run_id": run_id,
+            "retry_sample_count": len(retry_results),
+            "retry_completed_count": len([r for r in retry_results if r.get("status") == "completed"]),
+        },
+    )
+    inspection_results_store.upsert(
+        run_id,
+        {
+            "run_id": run_id,
+            "results": merged,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+    return merged
+
+
+async def _inspect_samples(
+    run_id: str,
+    samples: list[tuple[object, dict]],
+    brand_config: dict,
+    *,
+    max_concurrency: int,
+    progress_start: int,
+    progress_span: int,
+    progress_cap: int,
+    message_prefix: str,
+    persist_base_results: list[dict] | None = None,
+) -> list[dict]:
+    platforms = [getattr(client, "platform", str(client)) for client, _query in samples]
     task_timeout = _inspection_task_timeout_seconds()
     semaphore = asyncio.Semaphore(max_concurrency)
     results: list[dict] = []
-    total_tasks = len(queries) * len(clients)
+    total_tasks = len(samples)
     run = runs_store.get(run_id) or {}
 
     async def inspect_one(client, query: dict) -> dict:
@@ -216,24 +362,52 @@ async def _inspect_queries(
             inspection_id = f"insp_{uuid4().hex[:12]}"
             request_at = datetime.now(timezone.utc).isoformat()
             try:
-                result = await asyncio.wait_for(
-                    client.inspect(
-                        query,
-                        brand_config,
-                        options={
-                            "provider": run.get("llm_provider") or getattr(client, "platform", None),
-                            "web_search_enabled": run.get("web_search_enabled", True),
-                            **(run.get("llm_options") or {}),
-                        },
-                    ),
-                    timeout=task_timeout,
-                )
+                inspection_platform = getattr(client, "platform", None)
+                base_options = {
+                    "web_search_enabled": run.get("web_search_enabled", True),
+                    **(run.get("llm_options") or {}),
+                    "provider": inspection_platform,
+                }
+                if _two_round_inspection_enabled(run):
+                    try:
+                        result = await _inspect_blind_assisted(
+                            client,
+                            query,
+                            brand_config,
+                            base_options,
+                            task_timeout,
+                        )
+                    except Exception as two_round_error:
+                        logger.warning(
+                            "blind_assisted_inspection_failed_falling_back_to_single_round",
+                            extra={
+                                "run_id": run_id,
+                                "platform": inspection_platform,
+                                "query_id": query.get("query_id"),
+                                "error": str(two_round_error),
+                            },
+                        )
+                        result = await asyncio.wait_for(
+                            client.inspect(
+                                _blind_query(query),
+                                {},
+                                options={**base_options, "blind_mode": True, "two_round_fallback": True},
+                            ),
+                            timeout=task_timeout,
+                        )
+                else:
+                    result = await asyncio.wait_for(
+                        client.inspect(_blind_query(query), {}, options={**base_options, "blind_mode": True}),
+                        timeout=task_timeout,
+                    )
+                resolved_provider = result.get("provider") or inspection_platform or "claude"
                 return {
                     "inspection_id": inspection_id,
                     "status": "completed",
                     "platform": getattr(client, "platform", "unknown"),
-                    "provider": result.get("provider", "claude"),
-                    "llm_provider": result.get("provider", "claude"),
+                    "provider": resolved_provider,
+                    "llm_provider": resolved_provider,
+                    "inspection_design": result.get("inspection_design") or "single_round",
                     "web_search_enabled": result.get("web_search_enabled", True),
                     "web_search_mode": result.get("web_search_mode") or "responses_web_search",
                     "model": result.get("model", "unknown"),
@@ -247,6 +421,10 @@ async def _inspect_queries(
                     "returned_at": datetime.now(timezone.utc).isoformat(),
                     "raw_answer": result.get("raw_answer", ""),
                     "parsed": result.get("parsed", {}),
+                    "natural_raw_answer": result.get("natural_raw_answer"),
+                    "natural_parsed": result.get("natural_parsed"),
+                    "assisted_raw_answer": result.get("assisted_raw_answer"),
+                    "assisted_parsed": result.get("assisted_parsed"),
                     "usage": result.get("usage", {}),
                     "error": None,
                 }
@@ -280,27 +458,28 @@ async def _inspect_queries(
                     "error_type": _inspection_error_type(exc),
                 }
 
-    tasks = [asyncio.create_task(inspect_one(client, query)) for client in clients for query in queries]
+    tasks = [asyncio.create_task(inspect_one(client, query)) for client, query in samples]
     try:
         for index, task in enumerate(asyncio.as_completed(tasks), start=1):
             result = await task
             results.append(result)
+            persisted_results = _merge_retry_results(persist_base_results, results) if persist_base_results is not None else results
             inspection_results_store.upsert(
                 run_id,
                 {
                     "run_id": run_id,
-                    "results": results,
+                    "results": persisted_results,
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 },
             )
-            progress = 5 + round(index / total_tasks * 85)
-            platform_names = ", ".join(platforms)
+            progress = progress_start + round(index / total_tasks * progress_span) if total_tasks else progress_start
+            platform_names = ", ".join(dict.fromkeys(platforms))
             _update_run(
                 run_id,
                 {
                     "status": "running",
-                    "progress": min(progress, 90),
-                    "message": f"Inspecting {index}/{total_tasks} (platforms: {platform_names})",
+                    "progress": min(progress, progress_cap),
+                    "message": f"{message_prefix} {index}/{total_tasks} (platforms: {platform_names})",
                 },
             )
     except asyncio.CancelledError:
@@ -316,6 +495,143 @@ async def _inspect_queries(
         await asyncio.gather(*tasks, return_exceptions=True)
         raise
     return results
+
+
+def _retry_samples(clients: list, queries: list[dict], results: list[dict]) -> list[tuple[object, dict]]:
+    client_by_platform = {getattr(client, "platform", str(client)): client for client in clients}
+    query_by_id = {query.get("query_id"): query for query in queries}
+    samples: list[tuple[object, dict]] = []
+    seen: set[tuple[str | None, str | None]] = set()
+    for result in results:
+        if result.get("status") != "failed":
+            continue
+        error_type = _result_error_type(result)
+        if error_type not in RETRIABLE_INSPECTION_ERROR_TYPES:
+            continue
+        platform = result.get("platform")
+        query_id = result.get("query_id")
+        key = (platform, query_id)
+        if key in seen:
+            continue
+        client = client_by_platform.get(platform)
+        query = query_by_id.get(query_id)
+        if client is None or query is None:
+            logger.warning(
+                "inspection_retry_sample_unresolved",
+                extra={"platform": platform, "query_id": query_id, "error_type": error_type},
+            )
+            continue
+        seen.add(key)
+        samples.append((client, query))
+    return samples
+
+
+def _merge_retry_results(results: list[dict] | None, retry_results: list[dict]) -> list[dict]:
+    if results is None:
+        return retry_results
+
+    retry_by_key: dict[tuple[object, object], list[dict]] = {}
+    for result in retry_results:
+        retry_by_key.setdefault(_result_key(result), []).append(result)
+
+    merged: list[dict] = []
+    for result in results:
+        key = _result_key(result)
+        if (
+            result.get("status") == "failed"
+            and _result_error_type(result) in RETRIABLE_INSPECTION_ERROR_TYPES
+            and retry_by_key.get(key)
+        ):
+            merged.append(retry_by_key[key].pop(0))
+        else:
+            merged.append(result)
+
+    for remaining in retry_by_key.values():
+        merged.extend(remaining)
+    return merged
+
+
+def _result_key(result: dict) -> tuple[object, object]:
+    return (result.get("platform"), result.get("query_id"))
+
+
+def _result_error_type(result: dict) -> str:
+    error_type = result.get("error_type")
+    if isinstance(error_type, str) and error_type:
+        return error_type
+    return _inspection_error_type(RuntimeError(str(result.get("error") or "")))
+
+
+async def _inspect_blind_assisted(
+    client,
+    query: dict,
+    brand_config: dict,
+    base_options: dict,
+    task_timeout: float,
+) -> dict:
+    blind_query = _blind_query(query)
+    blind = await asyncio.wait_for(
+        client.inspect(
+            blind_query,
+            {},
+            options={**base_options, "blind_mode": True},
+        ),
+        timeout=task_timeout,
+    )
+    natural_parsed = blind.get("parsed") or {}
+    natural_answer = natural_parsed.get("answer") or blind.get("raw_answer") or ""
+    natural_citations = natural_parsed.get("citations") or []
+    assisted = await asyncio.wait_for(
+        client.inspect(
+            query,
+            brand_config,
+            options={
+                **base_options,
+                "web_search_enabled": False,
+                "assisted_extraction": True,
+                "natural_answer": natural_answer,
+                "natural_citations": natural_citations,
+            },
+        ),
+        timeout=task_timeout,
+    )
+    assisted_parsed = assisted.get("parsed") or {}
+    parsed = {
+        **assisted_parsed,
+        "answer": natural_answer,
+        "citations": natural_citations,
+    }
+    return {
+        **blind,
+        "inspection_design": "blind_assisted",
+        "raw_answer": blind.get("raw_answer", ""),
+        "parsed": parsed,
+        "natural_raw_answer": blind.get("raw_answer", ""),
+        "natural_parsed": natural_parsed,
+        "assisted_raw_answer": assisted.get("raw_answer", ""),
+        "assisted_parsed": assisted_parsed,
+        "usage": {
+            "blind": blind.get("usage", {}),
+            "assisted": assisted.get("usage", {}),
+        },
+    }
+
+
+def _blind_query(query: dict) -> dict:
+    allowed_keys = ("query_id", "query_text", "query_pattern", "query_layer", "topic", "intent_type")
+    return {key: query[key] for key in allowed_keys if key in query}
+
+
+def _two_round_inspection_enabled(run: dict) -> bool:
+    options = run.get("llm_options") if isinstance(run.get("llm_options"), dict) else {}
+    value = options.get("two_round_inspection")
+    if value is None:
+        value = options.get("blind_assisted_inspection")
+    if value is None:
+        return True
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _inspection_task_timeout_seconds() -> float:
@@ -408,7 +724,7 @@ async def resolve_queryset(brand_config: dict, run: dict) -> dict:
 def _latest_reusable_queryset(run: dict, brand_config: dict) -> dict | None:
     base_queryset_id = run.get("base_queryset_id")
     library_queryset = latest_frozen_queryset(brand_config, base_queryset_id)
-    if library_queryset:
+    if library_queryset and _queryset_matches_generation_mode(library_queryset, run):
         return library_queryset
 
     entity_name = str(brand_config.get("entity_name") or "").strip()
@@ -422,9 +738,17 @@ def _latest_reusable_queryset(run: dict, brand_config: dict) -> dict | None:
         and _same_brand_run(item, run, entity_name)
     ]
     if base_queryset_id:
-        return next((item["queryset"] for item in completed if item["queryset"].get("queryset_id") == base_queryset_id), None)
+        return next(
+            (
+                item["queryset"]
+                for item in completed
+                if item["queryset"].get("queryset_id") == base_queryset_id
+                and _queryset_matches_generation_mode(item["queryset"], run)
+            ),
+            None,
+        )
     completed.sort(key=lambda item: item.get("inspection_completed_at") or item.get("updated_at") or "", reverse=True)
-    return completed[0]["queryset"] if completed else None
+    return next((item["queryset"] for item in completed if _queryset_matches_generation_mode(item["queryset"], run)), None)
 
 
 def _same_brand_run(item: dict, run: dict, entity_name: str) -> bool:
@@ -446,9 +770,11 @@ def _reuse_queryset(queryset: dict, run: dict) -> dict:
             "reused_for_run_id": run.get("run_id"),
             "approved_by": run.get("queryset_approved_by"),
             "change_reason": run.get("queryset_change_reason") or "scheduled_retest",
+            "queryset_generation_mode": queryset_generation_mode(run),
         }
     )
     reused["governance"] = governance
+    reused["queryset_generation_mode"] = queryset_generation_mode(run)
     return reused
 
 
@@ -457,6 +783,8 @@ def _govern_queryset(queryset: dict, run: dict, change_type: str) -> dict:
     parent_queryset_id = run.get("base_queryset_id")
     governed["queryset_version"] = _next_queryset_version(governed.get("queryset_version"), parent_queryset_id)
     governed["parent_queryset_id"] = parent_queryset_id
+    governed["queryset_generation_mode"] = queryset_generation_mode(run)
+    governed["queryset_variant"] = queryset_generation_mode(run)
     governed["governance"] = {
         "policy": run.get("queryset_policy") or "reuse_latest",
         "change_type": change_type,
@@ -464,8 +792,20 @@ def _govern_queryset(queryset: dict, run: dict, change_type: str) -> dict:
         "approved_by": run.get("queryset_approved_by"),
         "parent_queryset_id": parent_queryset_id,
         "source_run_id": run.get("run_id"),
+        "queryset_generation_mode": queryset_generation_mode(run),
     }
     return persist_frozen_queryset({"brand_config_id": run.get("brand_config_id"), **(get_brand_config(run["brand_config_id"]) or {})}, governed)
+
+
+def _queryset_matches_generation_mode(queryset: dict, run: dict) -> bool:
+    requested = queryset_generation_mode(run)
+    governance = queryset.get("governance") if isinstance(queryset.get("governance"), dict) else {}
+    actual = str(
+        queryset.get("queryset_generation_mode")
+        or governance.get("queryset_generation_mode")
+        or DEFAULT_QUERYSET_GENERATION_MODE
+    ).strip()
+    return actual == requested
 
 
 def _next_queryset_version(version: object, parent_queryset_id: object) -> str:

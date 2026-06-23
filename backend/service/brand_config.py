@@ -32,6 +32,7 @@ def create_brand_config(payload: BrandConfigCreate) -> dict:
             "aliases": _clean_list(competitor.aliases),
             "business_line": (competitor.business_line or "").strip(),
             "category": (competitor.category or "").strip(),
+            "owned_domains": _clean_list(competitor.owned_domains),
         }
         for competitor in payload.competitors
         if competitor.name.strip()
@@ -41,6 +42,7 @@ def create_brand_config(payload: BrandConfigCreate) -> dict:
         "entity_id": entity_id,
         "entity_name": payload.entity_name.strip(),
         "entity_aliases": _clean_list(payload.entity_aliases),
+        "owned_domains": _clean_list(payload.owned_domains),
         "industry_segments": _clean_list(payload.industry_segments),
         "topics": topics,
         "competitors": competitors,

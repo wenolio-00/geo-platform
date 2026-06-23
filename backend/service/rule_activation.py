@@ -16,7 +16,7 @@ async def evaluate_rule_activation(payload: dict[str, Any]) -> dict[str, Any]:
         user_prompt=_rule_activation_user_prompt(payload, assets["prompt"], assets["schema"]),
     )
     parsed = result.get("parsed") or {}
-    return {
+    response = {
         "decision": parsed.get("decision"),
         "confidence": parsed.get("parse_confidence", parsed.get("confidence")),
         "activation_scope": parsed.get("activation_scope") or {},
@@ -31,6 +31,14 @@ async def evaluate_rule_activation(payload: dict[str, Any]) -> dict[str, Any]:
         "web_search_enabled": result.get("web_search_enabled", False),
         "web_search_mode": result.get("web_search_mode"),
     }
+    if result.get("used_fallback"):
+        response["quality_warning"] = {
+            "used_fallback": True,
+            "primary_provider": result.get("primary_provider"),
+            "fallback_provider": result.get("provider"),
+            "fallback_reason": result.get("fallback_reason"),
+        }
+    return response
 
 
 def _rule_activation_system_prompt(config: dict[str, Any]) -> str:

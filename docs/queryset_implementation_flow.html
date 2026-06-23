@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuerySet 工程落地流程图</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --ink: #202735;
+      --muted: #657084;
+      --line: #b8c2d6;
+      --brand: #1f7a8c;
+      --brand-soft: #dceff2;
+      --run: #6a5acd;
+      --run-soft: #ebe8ff;
+      --gate: #b75e00;
+      --gate-soft: #fff0d8;
+      --store: #3c7a35;
+      --store-soft: #e4f2df;
+      --report: #9b3f65;
+      --report-soft: #f5e2ea;
+      --warn: #c13f32;
+      --warn-soft: #fae6e3;
+      --shadow: 0 10px 28px rgba(30, 42, 65, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1280px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 44px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.18;
+      font-weight: 760;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 840px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      max-width: 440px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      border: 1px solid #d8deea;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .legend i {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .flow {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.05fr 1.35fr 1.05fr 1.05fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .lane {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      min-width: 0;
+    }
+
+    .lane-title {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .lane-title b {
+      color: var(--ink);
+      font-size: 14px;
+      text-transform: none;
+    }
+
+    .node {
+      position: relative;
+      min-height: 112px;
+      border: 1px solid #d8deea;
+      border-top: 5px solid var(--brand);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding: 15px 15px 14px;
+    }
+
+    .node h2 {
+      margin: 0 0 9px;
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .node p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.62;
+    }
+
+    .code {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 4px 7px;
+      border-radius: 6px;
+      background: #f2f5fa;
+      color: #364156;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .brand {
+      border-top-color: var(--brand);
+      background: linear-gradient(180deg, var(--brand-soft), #fff 58%);
+    }
+
+    .run {
+      border-top-color: var(--run);
+      background: linear-gradient(180deg, var(--run-soft), #fff 58%);
+    }
+
+    .gate {
+      border-top-color: var(--gate);
+      background: linear-gradient(180deg, var(--gate-soft), #fff 58%);
+    }
+
+    .store {
+      border-top-color: var(--store);
+      background: linear-gradient(180deg, var(--store-soft), #fff 58%);
+    }
+
+    .report {
+      border-top-color: var(--report);
+      background: linear-gradient(180deg, var(--report-soft), #fff 58%);
+    }
+
+    .warn {
+      border-top-color: var(--warn);
+      background: linear-gradient(180deg, var(--warn-soft), #fff 58%);
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .decision {
+      min-height: 104px;
+      border-style: dashed;
+    }
+
+    .join {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .arrow {
+      position: absolute;
+      z-index: 1;
+      pointer-events: none;
+      color: var(--line);
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .arrow.right {
+      right: -25px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .arrow.down {
+      left: 50%;
+      bottom: -23px;
+      transform: translateX(-50%);
+    }
+
+    .arrow.loop {
+      right: 12px;
+      bottom: -25px;
+      color: var(--gate);
+    }
+
+    .section {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .band {
+      border: 1px solid #d8deea;
+      border-radius: 8px;
+      background: #fff;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .band h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      border: 1px solid #dde3ee;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fafbfe;
+      min-height: 72px;
+    }
+
+    .field b {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .field span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .rules {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .rules li {
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      border-bottom: 1px solid #edf0f6;
+      padding-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .rules li:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .rules b {
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      header {
+        grid-template-columns: 1fr;
+      }
+
+      .legend {
+        justify-content: flex-start;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow.right {
+        right: auto;
+        left: 50%;
+        top: auto;
+        bottom: -23px;
+        transform: translateX(-50%) rotate(90deg);
+      }
+
+      .section {
+        grid-template-columns: 1fr;
+      }
+
+      .fields {
+        grid-template-columns: 1fr;
+      }
+
+      .join {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>QuerySet 工程落地流程图</h1>
+        <p class="subtitle">从品牌配置到 frozen QuerySet，再到多平台巡检、报告聚合和 Dashboard 历史快照。核心原则是：QuerySet 不是临时 prompt 列表，而是带版本、质量门禁和血缘关系的诊断样本资产。</p>
+      </div>
+      <div class="legend" aria-label="图例">
+        <span><i style="background: var(--brand)"></i>输入</span>
+        <span><i style="background: var(--run)"></i>编排</span>
+        <span><i style="background: var(--gate)"></i>门禁</span>
+        <span><i style="background: var(--store)"></i>冻结资产</span>
+        <span><i style="background: var(--report)"></i>报告血缘</span>
+      </div>
+    </header>
+
+    <section class="flow" aria-label="QuerySet 主流程">
+      <div class="lane">
+        <div class="lane-title"><b>输入层</b><span>Brand</span></div>
+        <article class="node brand">
+          <h2>品牌配置入库</h2>
+          <p>保存 entity、aliases、topics、competitors。后续 QuerySet 生成、巡检和报告聚合都以这份品牌快照为主线。</p>
+          <span class="code">brand_configs.json</span>
+          <span class="arrow right">→</span>
+        </article>
+        <article class="node run">
+          <h2>创建 Diagnostic Run</h2>
+          <p>写入 strategy、source、policy、base_queryset_id、generation_constraints 和 inspection_batch_id。</p>
+          <span class="code">create_run()</span>
+          <span class="arrow right">→</span>
+        </article>
+      </div>
+
+      <div class="lane">
+        <div class="lane-title"><b>解析与生成</b><span>QuerySet</span></div>
+        <article class="node run decision">
+          <h2>resolve_queryset()</h2>
+          <p>先按同品牌查找可复用 frozen QuerySet。policy 为 reuse_latest 且通过生产门禁时直接复用。</p>
+          <span class="code">latest_frozen_queryset()</span>
+          <span class="arrow down">↓</span>
+        </article>
+        <div class="join">
+          <article class="node store">
+            <h2>复用最新版本</h2>
+            <p>补充 governance：reused_from、reused_for_run、change_reason、approved_by。</p>
+            <span class="code">_reuse_queryset()</span>
+          </article>
+          <article class="node run">
+            <h2>生成新版本</h2>
+            <p>没有可复用版本，或 policy 要求 create_new_version，则进入统一生成入口。</p>
+            <span class="code">generate_queryset()</span>
+          </article>
+        </div>
+        <article class="node run">
+          <h2>Matrix Client</h2>
+          <p>优先请求外部 Matrix API；未配置且显式允许时，走本地 rule matrix fallback。</p>
+          <span class="code">QuerySetMatrixClient.generate()</span>
+          <span class="arrow right">→</span>
+        </article>
+      </div>
+
+      <div class="lane">
+        <div class="lane-title"><b>质量治理</b><span>Gate</span></div>
+        <article class="node gate">
+          <h2>候选 Query 规范化</h2>
+          <p>统一 query_id、query_text、journey_stage、query_pattern、metric_scope、related_competitors 等字段。</p>
+          <span class="code">normalize_matrix_queryset()</span>
+          <span class="arrow down">↓</span>
+        </article>
+        <article class="node gate decision">
+          <h2>QF-01~06 过滤</h2>
+          <p>按长度、禁词、广告话术、语气匹配和重复文本标记 active、archived 或 rejected。</p>
+          <span class="code">apply_query_quality_filters()</span>
+          <span class="arrow down">↓</span>
+        </article>
+        <article class="node gate">
+          <h2>生产门禁</h2>
+          <p>active query 数量必须达到阈值。默认 candidate 40、active 至少 30、最多 3 次累积尝试。</p>
+          <span class="code">validate_queryset_for_production()</span>
+          <span class="arrow right">→</span>
+        </article>
+        <article class="node warn">
+          <h2>失败可诊断</h2>
+          <p>若未达标，run 进入 failed，并记录 quality_report、attempt_reports、候选预览和 debug_context。</p>
+          <span class="code">QuerySetGenerationFailed</span>
+        </article>
+      </div>
+
+      <div class="lane">
+        <div class="lane-title"><b>资产与消费</b><span>Output</span></div>
+        <article class="node store">
+          <h2>冻结 QuerySet Snapshot</h2>
+          <p>完整候选保存在 query_candidates，真正进入生产巡检的 active query 保存在 queries。</p>
+          <span class="code">querysets.json</span>
+          <span class="arrow down">↓</span>
+        </article>
+        <article class="node run">
+          <h2>多平台实时巡检</h2>
+          <p>只取 active queries，与请求平台做笛卡尔积，写入 raw answer、parsed brands、citations、sentiment。</p>
+          <span class="code">_inspect_queries()</span>
+          <span class="arrow down">↓</span>
+        </article>
+        <article class="node report">
+          <h2>报告聚合与血缘</h2>
+          <p>report_data.lineage 写入 queryset_id、version、parent、strategy、source、policy 和 governance。</p>
+          <span class="code">aggregate_report()</span>
+          <span class="arrow down">↓</span>
+        </article>
+        <article class="node report">
+          <h2>Dashboard 历史快照</h2>
+          <p>历史报告可回溯到当时的品牌快照、QuerySet 版本和 inspection_batch。</p>
+          <span class="code">brand_dashboard_snapshots.json</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-label="关键字段和质量规则">
+      <div class="band">
+        <h2>QuerySet Snapshot 关键字段</h2>
+        <div class="fields">
+          <div class="field"><b>身份</b><span>queryset_id、queryset_version、parent_queryset_id</span></div>
+          <div class="field"><b>来源</b><span>queryset_strategy、queryset_source、matrix_api_request_id</span></div>
+          <div class="field"><b>治理</b><span>policy、change_type、change_reason、approved_by</span></div>
+          <div class="field"><b>候选</b><span>query_candidates 保留 active、archived、rejected 全量审计</span></div>
+          <div class="field"><b>生产集</b><span>queries 只保留 lifecycle_status 为 active 的样本</span></div>
+          <div class="field"><b>血缘</b><span>report_data.lineage 让历史报告可复现、可对比</span></div>
+        </div>
+      </div>
+
+      <div class="band">
+        <h2>质量过滤规则</h2>
+        <ul class="rules">
+          <li><b>QF-01</b><span>query_text 长度必须在可控范围内。</span></li>
+          <li><b>QF-02</b><span>命中行业禁词时 rejected。</span></li>
+          <li><b>QF-03</b><span>广告化表达归档，不进入生产巡检。</span></li>
+          <li><b>QF-04</b><span>口语场景里出现正式写作标记时归档。</span></li>
+          <li><b>QF-05</b><span>正式场景里出现强情绪表达时归档。</span></li>
+          <li><b>QF-06</b><span>当前批次或同品牌历史 active query 重复时归档。</span></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

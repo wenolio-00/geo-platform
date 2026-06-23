@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
+from service.platform_registry import DEFAULT_TASK_PROVIDER
+
 
 REPORT_TEMPLATE_VERSION = "geo_report_generator_goose_yellow_20260509"
 REPORT_SCHEMA_VERSION = "report_data_schema_v1"
@@ -43,12 +45,13 @@ def aggregate_report(
     for business_line in configured_business_lines:
         topic_sentiments[business_line] = Counter()
     topic_platform_stats: dict[tuple[str, str], dict] = {}
-    source_counts = Counter()
-    official_source_counts = Counter()
+    source_domain_rows: dict[str, dict] = {}
+    source_ownership_counts = Counter()
     source_url_rows: dict[str, dict] = {}
     competitor_only = 0
     visibility_samples = 0
     visibility_mentions = 0
+    assisted_visibility_mentions = 0
     query_text_by_id = {
         str(query.get("query_id")): query.get("query_text")
         for query in queryset.get("queries", [])
@@ -80,16 +83,16 @@ def aggregate_report(
                 topic_platform["visibility_samples"] += 1
         if platform not in platform_brand_stats:
             platform_brand_stats[platform] = {name: {"mentions": 0, "positions": []} for name in brands}
-        mentions = result.get("parsed", {}).get("mentioned_brands", [])
-        mentioned_self = False
-        mentioned_competitor = False
-        seen_in_sample = set()
+        natural_parsed = _parsed_for_natural_brand_extraction(result)
+        assisted_parsed = _parsed_for_assisted_brand_extraction(result)
+        natural_mentions = _mentions_from_parsed(natural_parsed, brand_config, competitor_names, infer_from_answer=True)
+        assisted_mentions = _mentions_from_parsed(assisted_parsed, brand_config, competitor_names)
+        mentions = assisted_mentions if isinstance(result.get("assisted_parsed"), dict) else natural_mentions
+        natural_canonical_mentions = _canonical_mentions(natural_mentions, brand_config, competitor_names)
+        assisted_canonical_mentions = _canonical_mentions(assisted_mentions, brand_config, competitor_names)
+        canonical_mentions = _canonical_mentions(mentions, brand_config, competitor_names)
 
-        for mention in mentions:
-            matched = _canonical_brand(mention.get("name"), brand_config, competitor_names)
-            if not matched or matched in seen_in_sample:
-                continue
-            seen_in_sample.add(matched)
+        for matched, mention in canonical_mentions.items():
             brand_stats.setdefault(matched, {"mentions": 0, "positions": []})
             brand_stats[matched]["mentions"] += 1
             platform_brand_stats[platform].setdefault(matched, {"mentions": 0, "positions": []})
@@ -99,43 +102,78 @@ def aggregate_report(
                 platform_brand_stats[platform][matched]["positions"].append(mention["position"])
             if topic_platform:
                 topic_platform["brand_mentions"][matched] += 1
-            if counts_for_visibility:
-                brand_visibility_mentions[matched] += 1
-                if topic_platform:
-                    topic_platform["brand_visibility_mentions"][matched] += 1
             if matched == brand_config["entity_name"]:
-                mentioned_self = True
                 self_sentiments[mention.get("sentiment") or "neutral"] += 1
                 platform_sentiments[platform][mention.get("sentiment") or "neutral"] += 1
                 if business_line:
                     topic_sentiments[business_line][mention.get("sentiment") or "neutral"] += 1
-            elif matched in competitor_names:
-                mentioned_competitor = True
 
-        if not mentioned_self and mentioned_competitor:
+        if counts_for_visibility:
+            for matched in natural_canonical_mentions:
+                brand_visibility_mentions[matched] += 1
+                if topic_platform:
+                    topic_platform["brand_visibility_mentions"][matched] += 1
+
+        natural_mentioned_self = brand_config["entity_name"] in natural_canonical_mentions
+        assisted_mentioned_self = brand_config["entity_name"] in assisted_canonical_mentions
+        natural_mentioned_competitor = any(name in natural_canonical_mentions for name in competitor_names)
+        if not natural_mentioned_self and natural_mentioned_competitor:
             competitor_only += 1
-        if counts_for_visibility and mentioned_self:
+        if counts_for_visibility and natural_mentioned_self:
             visibility_mentions += 1
             platform_visibility_mentions[platform] += 1
+        if counts_for_visibility and assisted_mentioned_self:
+            assisted_visibility_mentions += 1
 
-        for citation in result.get("parsed", {}).get("citations", []):
-            domain = citation.get("domain")
+        for citation in _parsed_for_citations(result).get("citations", []):
+            domain = _normalize_domain(citation.get("domain"))
+            if not domain and citation.get("url"):
+                url = _normalize_url(citation.get("url"))
+                domain = _domain_from_url(url) if url else None
             if not domain:
                 continue
-            source_counts[domain] += 1
-            if citation.get("is_official") is True:
-                official_source_counts[domain] += 1
-            _collect_source_reference(source_url_rows, result, citation)
+            ownership = _resolve_ownership(citation, brand_config)
+            source_ownership_counts[ownership["ownership"]] += 1
+            row = source_domain_rows.setdefault(
+                domain,
+                {
+                    "domain": domain,
+                    "type": _source_type_label(ownership),
+                    "source_type": ownership["source_type"],
+                    "ownership": ownership["ownership"],
+                    "entity": ownership.get("entity"),
+                    "count": 0,
+                    "is_cited": True,
+                    "is_official": ownership["ownership"] in {"brand_owned", "competitor_owned"} or citation.get("is_official") is True,
+                    "is_brand_owned": ownership["ownership"] == "brand_owned",
+                    "is_competitor_owned": ownership["ownership"] == "competitor_owned",
+                },
+            )
+            row["count"] += 1
+            if row["ownership"] != "brand_owned" and ownership["ownership"] == "brand_owned":
+                row.update(
+                    {
+                        "type": _source_type_label(ownership),
+                        "source_type": ownership["source_type"],
+                        "ownership": ownership["ownership"],
+                        "entity": ownership.get("entity"),
+                        "is_brand_owned": True,
+                    }
+                )
+            _collect_source_reference(source_url_rows, result, citation, ownership)
 
         if business_line:
             topic_sentiments.setdefault(business_line, Counter())
 
     self_stats = brand_stats.get(brand_config["entity_name"], {"mentions": 0, "positions": []})
     avg_rank = _round(sum(self_stats["positions"]) / len(self_stats["positions"]), 2) if self_stats["positions"] else None
-    visibility = _round(visibility_mentions / visibility_samples) if visibility_samples else 0
+    natural_visibility = _round(visibility_mentions / visibility_samples) if visibility_samples else 0
+    assisted_visibility = _round(assisted_visibility_mentions / visibility_samples) if visibility_samples else natural_visibility
+    visibility = natural_visibility
+    visibility_lift = _round(assisted_visibility - natural_visibility) if visibility_samples else 0
     sentiment_score = _sentiment_score(self_sentiments)
     ai_recommend_score = _round(visibility * sentiment_score * 100, 2)
-    own_citations = sum(official_source_counts.values())
+    own_citations = source_ownership_counts["brand_owned"]
     platforms_rows = _build_platforms(
         platform_brand_stats,
         platform_sample_counts,
@@ -170,10 +208,11 @@ def aggregate_report(
             "queryset_strategy": run["queryset_strategy"],
             "queryset_source": run.get("queryset_source"),
             "queryset_policy": run.get("queryset_policy"),
+            "queryset_generation_mode": queryset.get("queryset_generation_mode"),
             "queryset_governance": queryset.get("governance"),
             "inspection_mode": run["inspection_mode"],
             "platforms_requested": platforms_requested,
-            "llm_provider": "claude",
+            "llm_provider": run.get("llm_provider") or DEFAULT_TASK_PROVIDER,
             "web_search_enabled": run.get("web_search_enabled", True),
             "web_search_mode": (run.get("llm_options") or {}).get("web_search_mode") or "responses_web_search",
             "llm_options": {**(run.get("llm_options") or {}), "web_search_mode": (run.get("llm_options") or {}).get("web_search_mode") or "responses_web_search"},
@@ -197,11 +236,19 @@ def aggregate_report(
             "failure_types": dict(failure_types),
             "inspection_quality_gate": run.get("inspection_quality_gate"),
             "visibility_eligible_samples": visibility_samples,
+            "natural_visibility_mentions": visibility_mentions,
+            "assisted_visibility_mentions": assisted_visibility_mentions,
+            "visibility_source": "natural",
+            "inspection_designs": list(dict.fromkeys(r.get("inspection_design") or "single_round" for r in completed_results)),
         },
         "executive_summary": _summary(brand_config["entity_name"], visibility, avg_rank, ai_recommend_score, total),
         "global": {
             "rank": avg_rank,
             "visibility": visibility,
+            "natural_visibility": natural_visibility,
+            "assisted_visibility": assisted_visibility,
+            "visibility_lift": visibility_lift,
+            "visibility_source": "natural",
             "sentiment_score": sentiment_score,
             "ai_recommend_score": ai_recommend_score,
             "own_citations": own_citations,
@@ -211,16 +258,7 @@ def aggregate_report(
         "competitor_ranking": _competitor_ranking(brand_stats, total, brand_config["entity_name"], visibility_samples, brand_visibility_mentions),
         "topic_platform_visibility": _topic_platform_visibility(topic_platform_stats, brands, brand_config["entity_name"]),
         "platforms": platforms_rows,
-        "sources": [
-            {
-                "domain": domain,
-                "type": "自有" if official_source_counts[domain] else "第三方",
-                "count": count,
-                "is_cited": True,
-                "is_official": bool(official_source_counts[domain]),
-            }
-            for domain, count in source_counts.most_common()
-        ],
+        "sources": sorted(source_domain_rows.values(), key=lambda row: (-row["count"], row["domain"])),
         "source_references": _source_reference_rows(source_url_rows),
         "source_gap": [],
         "sentiment": _sentiment_rates(self_sentiments),
@@ -244,7 +282,7 @@ def aggregate_report(
     return report
 
 
-def _collect_source_reference(rows: dict[str, dict], result: dict, citation: dict) -> None:
+def _collect_source_reference(rows: dict[str, dict], result: dict, citation: dict, ownership: dict) -> None:
     url = _normalize_url(citation.get("url"))
     if not url:
         return
@@ -257,16 +295,25 @@ def _collect_source_reference(rows: dict[str, dict], result: dict, citation: dic
             "url": url,
             "domain": domain,
             "title": citation.get("title"),
-            "type": "自有" if citation.get("is_official") is True else "第三方",
-            "is_official": citation.get("is_official") is True,
+            "type": _source_type_label(ownership),
+            "source_type": ownership["source_type"],
+            "ownership": ownership["ownership"],
+            "entity": ownership.get("entity"),
+            "is_official": ownership["ownership"] in {"brand_owned", "competitor_owned"} or citation.get("is_official") is True,
+            "is_brand_owned": ownership["ownership"] == "brand_owned",
+            "is_competitor_owned": ownership["ownership"] == "competitor_owned",
             "references": [],
         },
     )
     if not row.get("title") and citation.get("title"):
         row["title"] = citation.get("title")
-    if citation.get("is_official") is True:
+    if ownership["ownership"] == "brand_owned":
         row["is_official"] = True
-        row["type"] = "自有"
+        row["type"] = _source_type_label(ownership)
+        row["source_type"] = ownership["source_type"]
+        row["ownership"] = ownership["ownership"]
+        row["entity"] = ownership.get("entity")
+        row["is_brand_owned"] = True
     answer = result.get("parsed", {}).get("answer") or result.get("raw_answer") or ""
     row["references"].append(
         {
@@ -299,6 +346,168 @@ def _source_reference_rows(rows: dict[str, dict]) -> list[dict]:
     return sorted(output, key=lambda item: (-item["citation_count"], item["url"]))[:6]
 
 
+def _parsed_for_natural_brand_extraction(result: dict) -> dict:
+    parsed = result.get("natural_parsed")
+    if isinstance(parsed, dict):
+        return parsed
+    parsed = result.get("parsed")
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _parsed_for_assisted_brand_extraction(result: dict) -> dict:
+    parsed = result.get("assisted_parsed")
+    if isinstance(parsed, dict):
+        return parsed
+    parsed = result.get("parsed")
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _mentions_from_parsed(
+    parsed: dict,
+    brand_config: dict,
+    competitor_names: list[str],
+    *,
+    infer_from_answer: bool = False,
+) -> list[dict]:
+    mentions = parsed.get("mentioned_brands")
+    if isinstance(mentions, list) and mentions:
+        return [mention for mention in mentions if isinstance(mention, dict)]
+    if infer_from_answer:
+        return _infer_mentions_from_answer(parsed.get("answer"), brand_config, competitor_names)
+    return []
+
+
+def _canonical_mentions(mentions: list[dict], brand_config: dict, competitor_names: list[str]) -> dict[str, dict]:
+    rows = {}
+    for mention in mentions:
+        matched = _canonical_brand(mention.get("name"), brand_config, competitor_names)
+        if matched and matched not in rows:
+            rows[matched] = mention
+    return rows
+
+
+def _infer_mentions_from_answer(answer: object, brand_config: dict, competitor_names: list[str]) -> list[dict]:
+    if not isinstance(answer, str) or not answer.strip():
+        return []
+    text = answer.casefold()
+    rows = []
+    for name, terms in _brand_term_groups(brand_config, competitor_names):
+        matched_terms = [term for term in terms if term and str(term).strip().casefold() in text]
+        if not matched_terms:
+            continue
+        rows.append(
+            {
+                "name": name,
+                "aliases_matched": [term for term in matched_terms if term != name],
+                "position": len(rows) + 1,
+                "mention_context": "standard_listing",
+                "sentiment": "neutral",
+                "evidence": None,
+            }
+        )
+    return rows
+
+
+def _brand_term_groups(brand_config: dict, competitor_names: list[str]) -> list[tuple[str, list[str]]]:
+    groups = [(brand_config["entity_name"], _self_terms(brand_config))]
+    competitor_lookup = {competitor.get("name"): competitor for competitor in brand_config.get("competitors", [])}
+    for name in competitor_names:
+        competitor = competitor_lookup.get(name) or {}
+        groups.append((name, [name, *competitor.get("aliases", [])]))
+    return groups
+
+
+def _parsed_for_citations(result: dict) -> dict:
+    parsed = result.get("natural_parsed")
+    if isinstance(parsed, dict):
+        return parsed
+    parsed = result.get("parsed")
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _resolve_ownership(citation: dict, brand_config: dict) -> dict:
+    domain = _normalize_domain(citation.get("domain"))
+    url = _normalize_url(citation.get("url"))
+    if not domain and url:
+        domain = _domain_from_url(url)
+    source_type = _source_type_for_domain(domain)
+    if not domain:
+        return {"ownership": "unknown", "source_type": source_type, "entity": None}
+
+    brand_domains = _domain_set(brand_config.get("owned_domains"))
+    if _domain_matches(domain, brand_domains):
+        return {
+            "ownership": "brand_owned",
+            "source_type": "official_site",
+            "entity": brand_config.get("entity_name"),
+        }
+
+    for competitor in brand_config.get("competitors", []):
+        domains = _domain_set(competitor.get("owned_domains"))
+        if _domain_matches(domain, domains):
+            return {
+                "ownership": "competitor_owned",
+                "source_type": "official_site",
+                "entity": competitor.get("name"),
+            }
+
+    if citation.get("is_official") is True and source_type == "unknown":
+        source_type = "official_site"
+    return {"ownership": "third_party", "source_type": source_type, "entity": None}
+
+
+def _domain_set(values: object) -> set[str]:
+    if not isinstance(values, list):
+        return set()
+    return {domain for value in values if (domain := _normalize_domain(value))}
+
+
+def _domain_matches(domain: str, candidates: set[str]) -> bool:
+    return any(domain == candidate or domain.endswith(f".{candidate}") for candidate in candidates)
+
+
+def _source_type_for_domain(domain: str | None) -> str:
+    if not domain:
+        return "unknown"
+    ugc_domains = {
+        "zhihu.com",
+        "xiaohongshu.com",
+        "xhslink.com",
+        "tieba.baidu.com",
+        "csdn.net",
+        "jianshu.com",
+        "douban.com",
+        "mp.weixin.qq.com",
+    }
+    media_domains = {
+        "36kr.com",
+        "huxiu.com",
+        "iyiou.com",
+        "chinaventure.com.cn",
+        "eastmoney.com",
+        "dfcfw.com",
+        "pdf.dfcfw.com",
+    }
+    if _domain_matches(domain, ugc_domains):
+        return "ugc_community"
+    if _domain_matches(domain, media_domains):
+        return "third_party_media"
+    return "unknown"
+
+
+def _source_type_label(ownership: dict) -> str:
+    if ownership["ownership"] == "brand_owned":
+        return "品牌自有"
+    if ownership["ownership"] == "competitor_owned":
+        return "竞品自有"
+    source_type = ownership.get("source_type")
+    if source_type == "ugc_community":
+        return "UGC"
+    if source_type == "third_party_media":
+        return "第三方媒体"
+    return "第三方"
+
+
 def _normalize_url(value: object) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -317,7 +526,9 @@ def _normalize_url(value: object) -> str | None:
 def _normalize_domain(value: object) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
-    domain = value.strip().lower()
+    raw = value.strip().lower()
+    parsed = urlparse(raw)
+    domain = parsed.netloc or raw
     return domain[4:] if domain.startswith("www.") else domain
 
 
@@ -576,7 +787,7 @@ def _brand_tagline(brand_config: dict) -> str | None:
 
 def _summary(brand: str, visibility: float, avg_rank: float | None, score: float, total: int) -> str:
     rank_text = f"平均位次 {avg_rank}" if avg_rank else "尚未形成稳定位次"
-    return f"本次基于多平台真实 AI 回答完成 {total} 条查询巡检，{brand} 可见度为 {visibility:.1%}，{rank_text}，AI 推荐度为 {score:.1f}。"
+    return f"本次基于多平台真实 AI 回答完成 {total} 条查询巡检，{brand} 自然可见度为 {visibility:.1%}，{rank_text}，AI 推荐度为 {score:.1f}。"
 
 
 def _insights(brand: str, visibility: float, avg_rank: float | None, own_citations: int, platforms: list[str]) -> list[dict]:

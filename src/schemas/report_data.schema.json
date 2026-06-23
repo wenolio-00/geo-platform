@@ -58,6 +58,10 @@
       "properties": {
         "rank": { "type": ["number", "null"] },
         "visibility": { "type": ["number", "null"] },
+        "natural_visibility": { "type": ["number", "null"] },
+        "assisted_visibility": { "type": ["number", "null"] },
+        "visibility_lift": { "type": ["number", "null"] },
+        "visibility_source": { "type": ["string", "null"] },
         "sentiment_score": { "type": ["number", "null"] },
         "ai_recommend_score": { "type": ["number", "null"] },
         "own_citations": { "type": ["number", "null"] },
@@ -184,9 +188,14 @@
       "properties": {
         "domain": { "type": "string" },
         "type": { "type": ["string", "null"] },
+        "source_type": { "type": ["string", "null"] },
+        "ownership": { "type": ["string", "null"] },
+        "entity": { "type": ["string", "null"] },
         "count": { "type": ["number", "null"] },
         "is_cited": { "type": ["boolean", "null"] },
-        "is_official": { "type": ["boolean", "null"] }
+        "is_official": { "type": ["boolean", "null"] },
+        "is_brand_owned": { "type": ["boolean", "null"] },
+        "is_competitor_owned": { "type": ["boolean", "null"] }
       },
       "additionalProperties": true
     },
@@ -198,7 +207,12 @@
         "domain": { "type": "string" },
         "title": { "type": ["string", "null"] },
         "type": { "type": ["string", "null"] },
+        "source_type": { "type": ["string", "null"] },
+        "ownership": { "type": ["string", "null"] },
+        "entity": { "type": ["string", "null"] },
         "is_official": { "type": ["boolean", "null"] },
+        "is_brand_owned": { "type": ["boolean", "null"] },
+        "is_competitor_owned": { "type": ["boolean", "null"] },
         "citation_count": { "type": ["number", "null"] },
         "references": {
           "type": "array",

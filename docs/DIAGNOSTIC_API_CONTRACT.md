@@ -235,16 +235,42 @@ store generated versions or feedback only in frontend state.
     "baseline_run_id": "run_123",
     "queryset_id": "qs_123"
   },
+  "template_recommendation": {
+    "template_id": "tpl_product_capability",
+    "template_version": "1.0.0",
+    "display_name": "产品能力介绍页",
+    "matched_reason": "动作类型匹配，且素材覆盖 data_points。",
+    "material_coverage": {
+      "required_fields": ["products"],
+      "available_fields": ["brand_name", "products", "data_points"],
+      "missing_required_fields": []
+    }
+  },
+  "template_candidates": [],
+  "templates_by_action": {
+    "action_1": {
+      "template_recommendation": {},
+      "template_candidates": []
+    }
+  },
+  "brand_material_summary": {
+    "source": "derived",
+    "available_fields": ["brand_name", "products", "data_points"]
+  },
   "content_versions": [],
   "defaults": {
     "action_id": "action_1",
-    "rule_id": "active_baseline_geo_content_v1"
+    "rule_id": "active_baseline_geo_content_v1",
+    "template_id": "tpl_product_capability"
   }
 }
 ```
 
-`POST /api/v1/geo/content/generate` accepts `brand_id`, `action_id`, and
-`rule_id`, then persists a `content_version_v1` record:
+`POST /api/v1/geo/content/generate` accepts `brand_id` or `brand_config_id`,
+`action_id`, `rule_id`, and optional `template_id` / `template_version`. If no
+template is supplied, the backend selects one from the static
+`geo_content_templates_v1` registry using action type, trigger cell, and derived
+brand material coverage. It then persists a `content_version_v1` record:
 
 ```json
 {
@@ -252,6 +278,11 @@ store generated versions or feedback only in frontend state.
   "brand_id": "brand_123",
   "action_id": "action_1",
   "rule_id": "active_baseline_geo_content_v1",
+  "template_id": "tpl_product_capability",
+  "template_version": "1.0.0",
+  "template_display_name": "产品能力介绍页",
+  "brand_material_source": "derived",
+  "material_coverage": {},
   "baseline_run_id": "run_123",
   "queryset": { "queryset_id": "qs_123", "queryset_version": "rule_matrix_v1" },
   "generated_text": "...",
@@ -283,7 +314,10 @@ The persisted stores are `content_versions.json`, `content_feedback.json`, and
 `effect_attribution.json`. A valid effect attribution record must include
 `content_version_id`, `action_id`, `rule_id`, `baseline_run_id`,
 `comparison_run_id`, `queryset_id`, `queryset_version`, feedback summary, and
-comparability confidence.
+comparability confidence. When content is generated through a template, the
+record must also carry `template_id`, `template_version`,
+`template_display_name`, `brand_material_source`, and `material_coverage` so
+template effectiveness can be attributed later.
 
 ### GET /api/v1/geo/brands/{brand_id}/history
 
@@ -365,32 +399,51 @@ Layer policy:
 - `adaptive`: new-business coverage analysis.
 - `experimental`: shadow-only exploration.
 
-## Claude Responses Web Search Inspection
+## Shared LLM Provider And Pluggable Inspection Platforms
 
-Diagnostic jobs use the canonical `claude` provider by default, including
-legacy `deepseek_live_v1` requests. The provider is routed through the
-OpenAI-compatible Responses API with web search enabled. It must not use
-fixture-derived, random, or deterministic simulated inspection data.
+Shared LLM tasks use the canonical project-internal `claude` provider by
+default. In this project, `claude` means the shared OpenAI-compatible upstream
+configured by `CLAUDE_*`; it does not mean the native Anthropic Messages API.
+The post-QuerySet inspection step remains platform-pluggable and must not be
+collapsed into the shared provider.
 
-MVP scope:
+Shared LLM scope:
 
-- Platform/provider: `claude`.
+- Provider: `claude`.
 - Endpoint: `CLAUDE_RESPONSES_ENDPOINT=/responses`.
-- Default model: `claude-haiku-4-5-20251001`; deployments may override with
-  `CLAUDE_MODEL`.
+- Default model: `gpt-5.5`; deployments may override with `CLAUDE_MODEL`.
 - Required environment variables: `CLAUDE_API_KEY`, `CLAUDE_BASE_URL`, and
   `CLAUDE_MODEL`.
+- Recommended unified gateway config:
+  - `CLAUDE_BASE_URL=https://newapi.ailyyzdk.xyz/`
+  - `CLAUDE_MODEL=gpt-5.5`
+  - URL / key / model must come from the same upstream provider account.
 - Web search: `CLAUDE_WEB_SEARCH_ENABLED=true` and
   `CLAUDE_WEB_SEARCH_MODE=responses_web_search`.
-- If the API key/base URL/model is missing or the provider fails, the run must become `failed`.
-  The backend must not fall back to mock data.
+- Shared callers include content generation, smart prefill, rule activation,
+  topic context extraction, and QuerySet matrix generation.
+- QuerySet matrix defaults to `CLAUDE_*`; `QUERYSET_MATRIX_*` is only an
+  explicit override for separating that task from the shared upstream.
+
+Inspection platform scope:
+
+- `INSPECTION_PLATFORMS` controls only the per-query post-QuerySet inspection
+  fan-out.
+- Platform clients remain independently configurable for `claude`, `GPT`,
+  `DeepSeek`, `Kimi`, `豆包`, `Tongyi`, `Wenxin`, and `Yuanbao`.
+- `run.llm_provider` describes the shared LLM provider and must not override
+  the actual inspection platform client.
+- If a required API key/base URL/model is missing or a provider fails, the run
+  must become `failed`. The backend must not fall back to mock data.
 
 For every QuerySet item, the backend should persist an inspection record with:
 
 ```json
 {
   "platform": "claude",
-  "model": "claude-haiku-4-5-20251001",
+  "provider": "claude",
+  "llm_provider": "claude",
+  "model": "gpt-5.5",
   "query_id": "q_001",
   "query_text": "银行积分商城系统有哪些成熟供应商？",
   "raw_answer": "...",

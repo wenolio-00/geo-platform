@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
-from service.platform_clients.openai_compatible import OpenAICompatibleClient
+from service.platform_clients.openai_compatible import OpenAICompatibleClient, _responses_citations
 
 
 class DoubaoClient(OpenAICompatibleClient):
@@ -13,6 +14,10 @@ class DoubaoClient(OpenAICompatibleClient):
             "https://ark.cn-beijing.volces.com/api/v3",
             "doubao-seed-2-0-mini-260215",
         )
+        if not self.api_key:
+            self.api_key = os.getenv("ARK_API_KEY", "").strip()
+        if self.web_search_mode in {"", "doubao_plugins"}:
+            self.web_search_mode = "responses_web_search"
 
     def _web_search_plugins(self) -> list[dict]:
         return [{"type": "web_search", "web_search": {"searcher": {"type": "web_searcher"}}}]
@@ -43,6 +48,11 @@ class DoubaoClient(OpenAICompatibleClient):
                         "quoted_text": _first_str(item, ["quoted_text", "snippet", "content"]),
                         "answer_excerpt": _first_str(item, ["answer_excerpt", "context"]),
                     })
+
+        # ARK runs in responses_web_search mode, so sources live in the
+        # /responses `output` array (message annotations + web-search items),
+        # not on the synthesized chat message. Pull those in too.
+        citations.extend(_responses_citations(raw_response))
 
         return _dedup_citations(citations)
 

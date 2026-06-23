@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GEO 工程业务链路技术设计图</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #18212f;
+      --muted: #667085;
+      --line: #d6dbe3;
+      --blue: #2f6feb;
+      --blue-soft: #e8f0ff;
+      --green: #18794e;
+      --green-soft: #e7f6ef;
+      --amber: #b76e00;
+      --amber-soft: #fff5df;
+      --violet: #7357c7;
+      --violet-soft: #f0ecff;
+      --red: #c0362c;
+      --red-soft: #fff0ee;
+      --shadow: 0 16px 38px rgba(16, 24, 40, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    .hero,
+    .panel,
+    .lane,
+    .asset-card,
+    .note-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(330px, 0.55fr);
+      gap: 18px;
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.18;
+    }
+
+    .lead {
+      max-width: 860px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .summary {
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      border-left: 1px solid var(--line);
+      padding-left: 22px;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 98px 1fr;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .summary-row strong {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .summary-row span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .panel {
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.3;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span,
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .dot.green { background: var(--green); }
+    .dot.amber { background: var(--amber); }
+    .dot.violet { background: var(--violet); }
+    .dot.red { background: var(--red); }
+
+    .flow-scroll {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .flow {
+      min-width: 1180px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .lane {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      box-shadow: none;
+    }
+
+    .lane-title {
+      padding: 16px 18px;
+      color: #fff;
+    }
+
+    .lane-title.blue { background: linear-gradient(135deg, #2f6feb, #6899ff); }
+    .lane-title.green { background: linear-gradient(135deg, #18794e, #48a879); }
+    .lane-title.violet { background: linear-gradient(135deg, #7357c7, #9b83e9); }
+
+    .lane-title p {
+      margin: 7px 0 0;
+      color: rgba(255,255,255,0.84);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .lane-body {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      background: #fbfcfe;
+    }
+
+    .ipo {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .ipo-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .badge.input { color: var(--blue); background: var(--blue-soft); }
+    .badge.process { color: var(--amber); background: var(--amber-soft); }
+    .badge.output { color: var(--green); background: var(--green-soft); }
+
+    .ipo ul {
+      list-style: none;
+      margin: 0;
+      padding: 11px 13px 13px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .ipo li {
+      display: grid;
+      gap: 2px;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .code {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      word-break: break-word;
+    }
+
+    .meaning {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .arrow-row {
+      min-width: 1180px;
+      display: grid;
+      grid-template-columns: 1fr 70px 1fr 70px 1fr;
+      align-items: center;
+      gap: 6px;
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .arrow {
+      color: var(--blue);
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .assets {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .asset-card {
+      padding: 15px;
+      box-shadow: none;
+    }
+
+    .asset-card h3 {
+      margin-bottom: 9px;
+    }
+
+    .asset-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    .matrix th,
+    .matrix td {
+      border: 1px solid var(--line);
+      padding: 10px 11px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .matrix th {
+      background: #f8fafc;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .matrix td:first-child {
+      font-weight: 800;
+      width: 16%;
+    }
+
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .note-card {
+      padding: 15px;
+      box-shadow: none;
+      border-left-width: 4px;
+    }
+
+    .note-card.blue { border-left-color: var(--blue); }
+    .note-card.green { border-left-color: var(--green); }
+    .note-card.violet { border-left-color: var(--violet); }
+
+    .note-card ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 920px) {
+      .hero { grid-template-columns: 1fr; }
+      .summary { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; padding-top: 16px; }
+      .assets, .notes { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .shell { width: 100%; padding: 0; }
+      .hero, .panel, .lane, .asset-card, .note-card { box-shadow: none; }
+      .flow-scroll { overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Engineering Design Diagram</p>
+        <h1>GEO 工程业务链路技术设计图</h1>
+        <p class="lead">面向研发快速理解工程业务逻辑：品牌配置进入诊断任务，诊断报告沉淀指标和建议；内容优化消费诊断上下文生成内容版本；用户手动复检通过新的诊断任务与基线任务对比，产出效果归因。</p>
+      </div>
+      <div class="summary">
+        <div class="summary-row"><strong>3</strong><span>主骨架：诊断报告、内容优化、手动复检</span></div>
+        <div class="summary-row"><strong>IPO</strong><span>每个环节拆成输入、处理、输出，便于映射代码</span></div>
+        <div class="summary-row"><strong>研发</strong><span>保留接口、字段、存储文件与函数锚点</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>主链路泳道图</h2>
+        <div class="legend">
+          <span><i class="dot"></i>诊断报告</span>
+          <span><i class="dot green"></i>内容优化</span>
+          <span><i class="dot violet"></i>手动复检</span>
+        </div>
+      </div>
+
+      <div class="flow-scroll">
+        <div class="flow">
+          <section class="lane">
+            <div class="lane-title blue">
+              <h3>一、诊断报告</h3>
+              <p>从品牌配置创建诊断任务，经 QuerySet、平台巡检和聚合，产出 report_data_v1 与 Dashboard 快照。</p>
+            </div>
+            <div class="lane-body">
+              <div class="ipo">
+                <div class="ipo-head"><span>Input 输入</span><span class="badge input">入口资产</span></div>
+                <ul>
+                  <li><strong>品牌配置</strong><span class="code">brand_config_id / BrandConfigCreate</span><span class="meaning">定义诊断对象、别名、行业、主题和竞品范围。</span></li>
+                  <li><strong>诊断任务参数</strong><span class="code">queryset_policy / inspection_mode / platforms</span><span class="meaning">决定问题集策略、巡检模式和目标平台。</span></li>
+                  <li><strong>生成约束</strong><span class="code">generation_constraints</span><span class="meaning">控制候选问题数、active query 门槛和调试小样本。</span></li>
+                </ul>
+              </div>
+              <div class="ipo">
+                <div class="ipo-head"><span>Process 处理</span><span class="badge process">核心函数</span></div>
+                <ul>
+                  <li><strong>创建诊断任务</strong><span class="code">geo.py:post_diagnostic_run → inspector.py:create_run</span><span class="meaning">先持久化 queued run，再异步调度 run_diagnostic_job。</span></li>
+                  <li><strong>解析 QuerySet</strong><span class="code">inspector.py:resolve_queryset / queryset.py:generate_queryset</span><span class="meaning">优先复用 frozen QuerySet；否则生成、过滤、治理并冻结。</span></li>
+                  <li><strong>平台巡检与聚合</strong><span class="code">_inspect_queries → aggregate_report</span><span class="meaning">调用平台客户端，解析 mentions/citations，聚合为报告数据。</span></li>
+                </ul>
+              </div>
+              <div class="ipo">
+                <div class="ipo-head"><span>Output 输出</span><span class="badge output">沉淀结果</span></div>
+                <ul>
+                  <li><strong>诊断报告数据</strong><span class="code">report_data_v1 / report_data</span><span class="meaning">前端报告页、HTML 导出和后续内容优化的核心输入。</span></li>
+                  <li><strong>巡检原始结果</strong><span class="code">inspection_results.json</span><span class="meaning">保留每条 query × platform 的原始回答、解析结果和失败信息。</span></li>
+                  <li><strong>Dashboard 快照</strong><span class="code">brand_dashboard_snapshots.json</span><span class="meaning">把完成报告转成 dashboard/content generation 可消费的上下文。</span></li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="lane">
+            <div class="lane-title green">
+              <h3>二、内容优化</h3>
+              <p>只覆盖当前工程链路：读取诊断快照上下文，生成优化草稿，保存内容版本，记录反馈与归因占位。</p>
+            </div>
+            <div class="lane-body">
+              <div class="ipo">
+                <div class="ipo-head"><span>Input 输入</span><span class="badge input">诊断上下文</span></div>
+                <ul>
+                  <li><strong>Dashboard 合约</strong><span class="code">get_dashboard_contract()</span><span class="meaning">提供最新诊断报告、指标、优化动作和规则上下文。</span></li>
+                  <li><strong>优化动作与规则</strong><span class="code">action_id / rule_id</span><span class="meaning">确定本次内容要解决的问题、对应规则和目标意图。</span></li>
+                  <li><strong>内容模板</strong><span class="code">content_templates.py:template_context</span><span class="meaning">选择适合的内容结构、素材覆盖和模板版本。</span></li>
+                </ul>
+              </div>
+              <div class="ipo">
+                <div class="ipo-head"><span>Process 处理</span><span class="badge process">核心函数</span></div>
+                <ul>
+                  <li><strong>构建生成上下文</strong><span class="code">get_content_generation_context</span><span class="meaning">把诊断结论、QuerySet 摘要、lineage、规则和版本历史整理给前端。</span></li>
+                  <li><strong>生成优化草稿</strong><span class="code">generate_optimized_draft_async</span><span class="meaning">校验 action/rule/template 后调用内容生成任务。</span></li>
+                  <li><strong>保存内容版本</strong><span class="code">_persist_content_version</span><span class="meaning">保存 draft、baseline_run_id、report_id、queryset、lineage，并创建 attribution 记录。</span></li>
+                </ul>
+              </div>
+              <div class="ipo">
+                <div class="ipo-head"><span>Output 输出</span><span class="badge output">版本资产</span></div>
+                <ul>
+                  <li><strong>内容版本</strong><span class="code">content_versions.json / content_version_id</span><span class="meaning">一次优化内容产物，可追踪版本、父版本和生成来源。</span></li>
+                  <li><strong>用户反馈</strong><span class="code">content_feedback.json / feedback_summary</span><span class="meaning">记录 helpful / not_helpful，并回写到内容版本和归因记录。</span></li>
+                  <li><strong>归因占位</strong><span class="code">effect_attribution.status = awaiting_retest</span><span class="meaning">等待用户手动复检产生 comparison_run_id 后再计算效果变化。</span></li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="lane">
+            <div class="lane-title violet">
+              <h3>三、手动复检</h3>
+              <p>复检不是新系统，而是用户再次创建 DiagnosticRun；完成后用基线 run 和对比 run 计算效果归因。</p>
+            </div>
+            <div class="lane-body">
+              <div class="ipo">
+                <div class="ipo-head"><span>Input 输入</span><span class="badge input">对比条件</span></div>
+                <ul>
+                  <li><strong>基线诊断任务</strong><span class="code">baseline_run_id</span><span class="meaning">内容优化前的完成态诊断报告，来自内容版本保存时的 latest_run_id。</span></li>
+                  <li><strong>复检任务参数</strong><span class="code">queryset_policy / queryset_change_reason</span><span class="meaning">用户手动创建新 run 时决定是否复用问题集和说明复检原因。</span></li>
+                  <li><strong>内容版本</strong><span class="code">content_version_id</span><span class="meaning">把本次优化产物与后续效果对比绑定。</span></li>
+                </ul>
+              </div>
+              <div class="ipo">
+                <div class="ipo-head"><span>Process 处理</span><span class="badge process">对比逻辑</span></div>
+                <ul>
+                  <li><strong>创建对比 run</strong><span class="code">POST /diagnostic-runs</span><span class="meaning">用户手动触发新的诊断任务，流程仍走 run_diagnostic_job。</span></li>
+                  <li><strong>查找对比任务</strong><span class="code">_latest_comparison_run_id</span><span class="meaning">若未显式传 comparison_run_id，自动找 baseline 之后最新完成 run。</span></li>
+                  <li><strong>计算效果归因</strong><span class="code">compute_content_effect_attribution → _effect_delta / _comparability</span><span class="meaning">对比优化前后指标变化，并判断 QuerySet 是否可比。</span></li>
+                </ul>
+              </div>
+              <div class="ipo">
+                <div class="ipo-head"><span>Output 输出</span><span class="badge output">复检结论</span></div>
+                <ul>
+                  <li><strong>对比诊断报告</strong><span class="code">comparison_run_id / report_data</span><span class="meaning">优化后的新诊断报告，是效果计算的后测样本。</span></li>
+                  <li><strong>效果变化</strong><span class="code">effect_delta</span><span class="meaning">对 visibility、rank、sentiment、recommend_score 等指标做 before/after/delta。</span></li>
+                  <li><strong>可比性判断</strong><span class="code">comparability.same_queryset / confidence</span><span class="meaning">说明两次诊断是否使用同一问题集或同源问题集。</span></li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
+        <div class="arrow-row">
+          <span>诊断报告沉淀 report_data + dashboard snapshot</span>
+          <span class="arrow">→</span>
+          <span>内容优化消费诊断上下文并保存 content_version</span>
+          <span class="arrow">→</span>
+          <span>用户手动复检生成 comparison run 并计算 attribution</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>关键数据资产与存储</h2>
+        <div class="legend"><span>中文业务名优先，工程变量用于定位代码</span></div>
+      </div>
+      <div class="assets">
+        <article class="asset-card">
+          <h3>品牌配置</h3>
+          <p><span class="code">brand_configs.json</span><br>保存 entity、aliases、topics、competitors，是诊断对象与内容生成上下文的起点。</p>
+        </article>
+        <article class="asset-card">
+          <h3>诊断任务</h3>
+          <p><span class="code">diagnostic_runs.json</span><br>保存 run 状态、QuerySet snapshot、quality gate、report_data 和失败排查字段。</p>
+        </article>
+        <article class="asset-card">
+          <h3>问题集资产</h3>
+          <p><span class="code">querysets.json</span><br>保存 frozen QuerySet；queries[] 是 active-only，query_candidates[] 是审计全集。</p>
+        </article>
+        <article class="asset-card">
+          <h3>巡检结果</h3>
+          <p><span class="code">inspection_results.json</span><br>保存每个平台回答、解析 mention/citation、错误类型和 raw answer。</p>
+        </article>
+        <article class="asset-card">
+          <h3>Dashboard 快照</h3>
+          <p><span class="code">brand_dashboard_snapshots.json</span><br>由完成报告派生，供 dashboard 与内容优化读取。</p>
+        </article>
+        <article class="asset-card">
+          <h3>内容版本</h3>
+          <p><span class="code">content_versions.json</span><br>保存生成草稿、模板、baseline_run_id、lineage、版本号和父版本。</p>
+        </article>
+        <article class="asset-card">
+          <h3>内容反馈</h3>
+          <p><span class="code">content_feedback.json</span><br>保存 helpful / not_helpful 信号，并更新 feedback_summary。</p>
+        </article>
+        <article class="asset-card">
+          <h3>效果归因</h3>
+          <p><span class="code">effect_attribution.json</span><br>保存 baseline/comparison run、effect_delta、comparability 和归因状态。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>关键接口清单</h2>
+        <div class="legend"><span>按业务阶段分组，不按路由文件顺序</span></div>
+      </div>
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th>业务阶段</th>
+            <th>业务动作</th>
+            <th>接口 / 函数</th>
+            <th>输出与意义</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>诊断报告</td>
+            <td>创建品牌配置</td>
+            <td><span class="code">POST /api/v1/geo/brand-configs</span></td>
+            <td>返回 <span class="code">brand_config_id</span>，作为诊断任务输入。</td>
+          </tr>
+          <tr>
+            <td>诊断报告</td>
+            <td>创建诊断任务</td>
+            <td><span class="code">POST /api/v1/geo/diagnostic-runs</span></td>
+            <td>返回 <span class="code">run_id</span>，后台异步执行 QuerySet、巡检和聚合。</td>
+          </tr>
+          <tr>
+            <td>诊断报告</td>
+            <td>查询任务状态</td>
+            <td><span class="code">GET /api/v1/geo/diagnostic-runs/{run_id}</span></td>
+            <td>读取 queued/running/aggregating/completed/failed/interrupted 状态和失败调试字段。</td>
+          </tr>
+          <tr>
+            <td>诊断报告</td>
+            <td>读取报告数据</td>
+            <td><span class="code">GET /api/v1/geo/diagnostic-report?run_id=...</span></td>
+            <td>读取完成态 <span class="code">report_data_v1</span>，用于页面展示和导出。</td>
+          </tr>
+          <tr>
+            <td>内容优化</td>
+            <td>读取生成上下文</td>
+            <td><span class="code">GET /dashboard-contract</span> + <span class="code">get_content_generation_context</span></td>
+            <td>提供 action/rule/queryset/lineage/template 信息。</td>
+          </tr>
+          <tr>
+            <td>内容优化</td>
+            <td>生成内容草稿</td>
+            <td><span class="code">POST /api/v1/geo/content/generate</span></td>
+            <td>返回并保存 <span class="code">content_version_id</span>，同时创建 awaiting_retest 的归因记录。</td>
+          </tr>
+          <tr>
+            <td>手动复检</td>
+            <td>计算效果归因</td>
+            <td><span class="code">POST /content/versions/{id}/effect-attribution</span></td>
+            <td>对比 baseline 和 comparison run，输出 effect_delta 与 comparability。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>研发排查视角</h2>
+        <div class="legend"><span>优先看链路断在哪个资产</span></div>
+      </div>
+      <div class="notes">
+        <article class="note-card blue">
+          <h3>诊断报告失败</h3>
+          <ul>
+            <li>先看 <span class="code">diagnostic_runs.json</span> 的 status、message、error。</li>
+            <li>QuerySet 失败看 <span class="code">last_queryset_quality_report</span>、attempt reports、candidates preview。</li>
+            <li>平台失败看 <span class="code">inspection_quality_gate</span> 与 <span class="code">inspection_results.json</span>。</li>
+          </ul>
+        </article>
+        <article class="note-card green">
+          <h3>内容优化没有上下文</h3>
+          <ul>
+            <li>检查是否已有 completed diagnostic run。</li>
+            <li>检查 <span class="code">brand_dashboard_snapshots.json</span> 是否已由报告同步生成。</li>
+            <li>检查 action_id / rule_id 是否存在于最新 dashboard contract。</li>
+          </ul>
+        </article>
+        <article class="note-card violet">
+          <h3>复检归因未计算</h3>
+          <ul>
+            <li>状态为 <span class="code">awaiting_retest</span> 表示尚无完成态 comparison run。</li>
+            <li>优先使用 <span class="code">reuse_latest</span> 保持 QuerySet 可比。</li>
+            <li>对比结果看 <span class="code">effect_delta</span> 与 <span class="code">comparability.confidence</span>。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

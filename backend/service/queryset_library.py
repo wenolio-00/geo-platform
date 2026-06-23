@@ -65,7 +65,8 @@ def validate_queryset_for_production(
 
 def _min_production_active_queries() -> int:
     try:
-        return max(1, int(os.getenv("MIN_ACTIVE_QUERIES") or MIN_PRODUCTION_ACTIVE_QUERIES))
+        configured = int(os.getenv("MIN_ACTIVE_QUERIES") or MIN_PRODUCTION_ACTIVE_QUERIES)
+        return max(MIN_PRODUCTION_ACTIVE_QUERIES, configured)
     except (TypeError, ValueError):
         return MIN_PRODUCTION_ACTIVE_QUERIES
 

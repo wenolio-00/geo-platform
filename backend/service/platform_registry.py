@@ -19,7 +19,15 @@ class ProviderSpec:
     capabilities: dict[str, Any] = field(default_factory=dict)
 
 
-LLM_TASK_TYPES = {"inspect", "content_generation", "prefill", "rule_activation", "context_extraction"}
+LLM_TASK_TYPES = {
+    "inspect",
+    "content_generation",
+    "prefill",
+    "rule_activation",
+    "context_extraction",
+    "queryset_matrix",
+    "intent_analysis",
+}
 DEFAULT_TASK_PROVIDER = "claude"
 
 PLATFORM_SPECS: dict[str, ProviderSpec] = {
@@ -27,11 +35,19 @@ PLATFORM_SPECS: dict[str, ProviderSpec] = {
         platform="claude",
         env_prefix="CLAUDE",
         default_base_url="",
-        default_model="claude-haiku-4-5-20251001",
+        default_model="gpt-5.5",
         client_kind="openai_compatible",
         capabilities={
             "supports_web_search": True,
-            "task_modes": ["inspect", "content_generation", "prefill", "rule_activation", "context_extraction"],
+            "task_modes": [
+                "inspect",
+                "content_generation",
+                "prefill",
+                "rule_activation",
+                "context_extraction",
+                "queryset_matrix",
+                "intent_analysis",
+            ],
         },
     ),
     "GPT": ProviderSpec(
@@ -42,7 +58,15 @@ PLATFORM_SPECS: dict[str, ProviderSpec] = {
         client_kind="openai_compatible",
         capabilities={
             "supports_web_search": True,
-            "task_modes": ["inspect", "content_generation", "prefill", "rule_activation", "context_extraction"],
+            "task_modes": [
+                "inspect",
+                "content_generation",
+                "prefill",
+                "rule_activation",
+                "context_extraction",
+                "queryset_matrix",
+                "intent_analysis",
+            ],
         },
     ),
     "DeepSeek": ProviderSpec(
@@ -66,13 +90,17 @@ PLATFORM_SPECS: dict[str, ProviderSpec] = {
         default_base_url="https://ark.cn-beijing.volces.com/api/v3",
         default_model="doubao-seed-2-0-mini-260215",
         client_kind="doubao",
-        capabilities={"supports_web_search": True, "task_modes": ["inspect", "content_generation", "prefill", "rule_activation"]},
+        capabilities={
+            "supports_web_search": True,
+            "task_modes": ["inspect", "content_generation", "prefill", "rule_activation", "intent_analysis"],
+        },
     ),
     "Tongyi": ProviderSpec(
         platform="Tongyi",
         env_prefix="TONGYI",
-        default_base_url="",
-        default_model="",
+        default_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        default_model="qwen-plus",
+        client_kind="openai_compatible",
         capabilities={"supports_web_search": False, "task_modes": ["inspect"]},
     ),
     "Wenxin": ProviderSpec(
@@ -100,6 +128,7 @@ ALIASES = {
     "kimi": "Kimi",
     "doubao": "豆包",
     "豆包": "豆包",
+    "qwen": "Tongyi",
     "tongyi": "Tongyi",
     "通义": "Tongyi",
     "通义千问": "Tongyi",
@@ -136,6 +165,22 @@ def provider_capabilities(provider: str | None = None) -> dict[str, Any]:
         return {}
     spec = PLATFORM_SPECS.get(platform)
     return dict(spec.capabilities) if spec else {}
+
+
+def get_fallback_providers(task_type: str, primary_provider: str) -> list[str]:
+    if not _env_bool("LLM_PROVIDER_FALLBACK_ENABLED", False):
+        return []
+
+    primary = _canonical_platform(primary_provider)
+    fallback_text = os.getenv("LLM_PROVIDER_FALLBACK_LIST", "")
+    providers: list[str] = []
+    for raw_provider in fallback_text.split(","):
+        provider = _canonical_platform(raw_provider)
+        if not provider or provider == primary or provider in providers:
+            continue
+        if _provider_supports_task(provider, task_type):
+            providers.append(provider)
+    return providers
 
 
 def validate_platform_clients(clients: list[OpenAICompatibleClient]) -> None:
@@ -217,21 +262,31 @@ def _task_provider_for(task_type: str, payload: dict[str, Any]) -> str:
         payload.get("provider"),
         payload.get("llm_provider"),
         os.getenv("DEFAULT_LLM_PROVIDER"),
-        *_env_platforms(),
         DEFAULT_TASK_PROVIDER,
     ]
     for candidate in candidates:
         provider = _canonical_platform(candidate)
         if not provider:
             continue
-        spec = PLATFORM_SPECS.get(provider)
-        task_modes = (spec.capabilities.get("task_modes") if spec else None) or []
-        if task_type not in LLM_TASK_TYPES or task_type in task_modes:
+        if _provider_supports_task(provider, task_type):
             return provider
     return DEFAULT_TASK_PROVIDER
 
 
 def _canonical_task_provider(value: object | None = None) -> str:
-    raw = value if value is not None else os.getenv("DEFAULT_LLM_PROVIDER") or next(iter(_env_platforms()), None) or DEFAULT_TASK_PROVIDER
+    raw = value if value is not None else os.getenv("DEFAULT_LLM_PROVIDER") or DEFAULT_TASK_PROVIDER
     provider = _canonical_platform(raw)
     return provider if provider in PLATFORM_SPECS else DEFAULT_TASK_PROVIDER
+
+
+def _provider_supports_task(provider: str, task_type: str) -> bool:
+    spec = PLATFORM_SPECS.get(provider)
+    task_modes = (spec.capabilities.get("task_modes") if spec else None) or []
+    return task_type not in LLM_TASK_TYPES or task_type in task_modes
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}

@@ -18,11 +18,38 @@ export const REPORT_METRIC_DEFINITIONS = [
   {
     metric_id: 'visibility',
     metric_name: '可见度',
-    formula: 'query 不提及品牌时，回答中提及品牌的概率',
+    formula: 'query 不提及品牌时，自然回答中提及品牌的概率',
     benchmark_value: 0.5,
     benchmark_label: '≥ 50%',
     direction: 'higher_is_better',
     unit: '%',
+  },
+  {
+    metric_id: 'natural_visibility',
+    metric_name: '自然可见度',
+    formula: 'blind answer 中，query 不提及品牌时自然回答提及品牌的概率',
+    benchmark_value: 0.5,
+    benchmark_label: '≥ 50%',
+    direction: 'higher_is_better',
+    unit: '%',
+  },
+  {
+    metric_id: 'assisted_visibility',
+    metric_name: '解析可见度',
+    formula: '基于自然回答和品牌配置抽取出的品牌提及概率',
+    benchmark_value: 0.5,
+    benchmark_label: '≥ 50%',
+    direction: 'higher_is_better',
+    unit: '%',
+  },
+  {
+    metric_id: 'visibility_lift',
+    metric_name: '品牌上下文提升',
+    formula: 'assisted_visibility - natural_visibility',
+    benchmark_value: 0,
+    benchmark_label: '≈ 0',
+    direction: 'neutral',
+    unit: 'pp',
   },
   {
     metric_id: 'sentiment_score',
@@ -217,7 +244,7 @@ function computeOwnCitationsV63(rawGlobal, rawSources) {
   if (explicit !== null) return explicit
 
   return normalizeArray(rawSources)
-    .filter(row => row?.is_official === true || row?.type === '自有')
+    .filter(row => row?.ownership === 'brand_owned' || row?.is_brand_owned === true || row?.type === '品牌自有' || row?.type === '自有')
     .filter(row => row?.is_cited !== false)
     .reduce((sum, row) => sum + (toNumberOrNull(row?.count) ?? 1), 0)
 }
@@ -353,7 +380,12 @@ function normalizeSourceReferences(rows) {
       domain: toStringOrNull(row?.domain),
       title: toStringOrNull(row?.title),
       type: toStringOrNull(row?.type),
+      source_type: toStringOrNull(row?.source_type),
+      ownership: toStringOrNull(row?.ownership),
+      entity: toStringOrNull(row?.entity),
       is_official: typeof row?.is_official === 'boolean' ? row.is_official : null,
+      is_brand_owned: typeof row?.is_brand_owned === 'boolean' ? row.is_brand_owned : null,
+      is_competitor_owned: typeof row?.is_competitor_owned === 'boolean' ? row.is_competitor_owned : null,
       citation_count: toNumberOrNull(row?.citation_count) ?? references.length,
       references,
     }
@@ -467,6 +499,9 @@ export function normalizeReportData(raw = {}) {
     global: {
       rank,
       visibility,
+      natural_visibility: toNumberOrNull(raw.global?.natural_visibility),
+      assisted_visibility: toNumberOrNull(raw.global?.assisted_visibility),
+      visibility_lift: toNumberOrNull(raw.global?.visibility_lift),
       sentiment_score: sentimentScore,
       ai_recommend_score: aiRecommendScore,
       own_citations: ownCitations,
@@ -488,9 +523,14 @@ export function normalizeReportData(raw = {}) {
       ...row,
       domain: toStringOrNull(row?.domain),
       type: toStringOrNull(row?.type),
+      source_type: toStringOrNull(row?.source_type),
+      ownership: toStringOrNull(row?.ownership),
+      entity: toStringOrNull(row?.entity),
       count: toNumberOrNull(row?.count),
       is_cited: typeof row?.is_cited === 'boolean' ? row.is_cited : null,
       is_official: typeof row?.is_official === 'boolean' ? row.is_official : null,
+      is_brand_owned: typeof row?.is_brand_owned === 'boolean' ? row.is_brand_owned : null,
+      is_competitor_owned: typeof row?.is_competitor_owned === 'boolean' ? row.is_competitor_owned : null,
     })).filter(row => row.domain),
     source_references: normalizeSourceReferences(raw.source_references),
     source_gap: normalizeArray(raw.source_gap).map(row => ({

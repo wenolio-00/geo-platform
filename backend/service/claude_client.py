@@ -14,13 +14,13 @@ class ClaudeClient:
         self.platform = "Claude"
         self.env_prefix = "CLAUDE"
         self.api_key = os.getenv("CLAUDE_API_KEY", os.getenv("ANTHROPIC_API_KEY", "")).strip()
-        self.base_url = os.getenv("CLAUDE_BASE_URL", "https://api.anthropic.com").rstrip("/")
-        self.model = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5-20251001").strip()
+        self.base_url = os.getenv("CLAUDE_BASE_URL", "https://newapi.ailyyzdk.xyz/").rstrip("/")
+        self.model = os.getenv("CLAUDE_MODEL", "gpt-5.5").strip()
         self.version = os.getenv("CLAUDE_ANTHROPIC_VERSION", "2023-06-01").strip()
         self.timeout = float(os.getenv("CLAUDE_TIMEOUT_SECONDS", os.getenv("REQUEST_TIMEOUT_SECONDS", "45")))
         self.web_search_enabled = _env_bool("CLAUDE_WEB_SEARCH_ENABLED", True)
         self.web_search_max_uses = int(os.getenv("CLAUDE_WEB_SEARCH_MAX_USES", "5"))
-        self.api_style = os.getenv("CLAUDE_API_STYLE", "anthropic").strip().lower()
+        self.api_style = os.getenv("CLAUDE_API_STYLE", "openai").strip().lower()
         self.web_search_mode = os.getenv("CLAUDE_WEB_SEARCH_MODE", "").strip().lower()
         self.messages_endpoint = os.getenv("CLAUDE_MESSAGES_ENDPOINT", "/v1/messages").strip() or "/v1/messages"
         self.chat_endpoint = os.getenv("CLAUDE_CHAT_COMPLETIONS_ENDPOINT", "/chat/completions").strip() or "/chat/completions"
@@ -33,6 +33,7 @@ class ClaudeClient:
         if not self.model:
             raise RuntimeError("CLAUDE_MODEL is not configured; Claude inspection cannot run.")
 
+        options = options or {}
         raw_response = await self._post_with_retry(self._payload(query, brand_config, options=options))
         content = _response_text(raw_response, self.api_style)
         if self.api_style == "anthropic" and not content and _has_unresolved_tool_use(raw_response):
@@ -41,13 +42,15 @@ class ClaudeClient:
         if not content:
             raise RuntimeError("Claude returned an empty message content.")
 
-        parsed = parse_json_answer(content, brand_config)
+        parse_config = {} if options.get("blind_mode") else brand_config
+        parsed = parse_json_answer(content, parse_config)
         api_citations = _extract_citations(raw_response, self.api_style)
         if api_citations:
             parsed["citations"] = _merge_citations(parsed.get("citations", []), api_citations)
         return {
             "platform": self.platform,
             "model": raw_response.get("model", self.model),
+            "inspection_round": _inspection_round(options),
             "query_id": query["query_id"],
             "query_text": query["query_text"],
             "query_pattern": query.get("query_pattern"),
@@ -134,8 +137,8 @@ class ClaudeClient:
             "model": self.model,
             "max_tokens": int(options.get("max_tokens", os.getenv("CLAUDE_MAX_TOKENS", "1600"))),
             "temperature": options.get("temperature", 0),
-            "system": _system_prompt(),
-            "messages": [{"role": "user", "content": _user_prompt(self.platform, query, brand_config)}],
+            "system": _system_prompt(options),
+            "messages": [{"role": "user", "content": _user_prompt(self.platform, query, brand_config, options)}],
         }
         if include_tools and options.get("web_search_enabled", self.web_search_enabled):
             payload["tools"] = [
@@ -152,8 +155,8 @@ class ClaudeClient:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": _system_prompt()},
-                {"role": "user", "content": _user_prompt(self.platform, query, brand_config)},
+                {"role": "system", "content": _system_prompt(options)},
+                {"role": "user", "content": _user_prompt(self.platform, query, brand_config, options)},
             ],
             "stream": False,
             "temperature": options.get("temperature", 0),
@@ -434,14 +437,38 @@ def _http_error_message(platform: str, error: httpx.HTTPStatusError) -> str:
     return f"{platform} request failed with HTTP {response.status_code}: {detail}"
 
 
-def _system_prompt() -> str:
+def _inspection_round(options: dict[str, Any]) -> str:
+    if options.get("blind_mode"):
+        return "blind"
+    if options.get("assisted_extraction"):
+        return "assisted"
+    return "single"
+
+
+def _system_prompt(options: dict[str, Any] | None = None) -> str:
+    options = options or {}
+    if options.get("blind_mode"):
+        return (
+            "你是真实用户问题回答器。你只需要回答用户问题，不要揣测正在评估哪个品牌，"
+            "也不要引入未被问题自然触发的品牌上下文。只能返回一个合法 JSON 对象，不要输出 Markdown。"
+        )
+    if options.get("assisted_extraction"):
+        return (
+            "你是 GEO 品牌提及结构化抽取器。你只能基于给定的自然回答和引用做抽取，"
+            "不得改写自然回答，不得新增自然回答中没有的品牌、URL 或证据。只能返回一个合法 JSON 对象。"
+        )
     return (
         "你是 GEO 品牌可见度巡检器。你必须先真实回答用户问题，再基于自己的回答抽取品牌提及情况。"
         "只能返回一个合法 JSON 对象，不要输出 Markdown。"
     )
 
 
-def _user_prompt(platform: str, query: dict, brand_config: dict) -> str:
+def _user_prompt(platform: str, query: dict, brand_config: dict, options: dict[str, Any] | None = None) -> str:
+    options = options or {}
+    if options.get("blind_mode"):
+        return _blind_user_prompt(platform, query)
+    if options.get("assisted_extraction"):
+        return _assisted_extraction_user_prompt(platform, query, brand_config, options)
     brand = brand_config["entity_name"]
     aliases = brand_config.get("entity_aliases", [])
     competitors = brand_config.get("competitors", [])
@@ -476,7 +503,6 @@ def _user_prompt(platform: str, query: dict, brand_config: dict) -> str:
       "url": "只有 answer 中明确出现 URL 时才填写，否则不要编造",
       "domain": "域名",
       "title": "可为空",
-      "is_official": true,
       "quoted_text": "该 URL 支撑的回答内容片段；必须来自 answer 或模型明确给出的引用片段",
       "answer_excerpt": "包含该 URL 或该引用判断的 answer 上下文，可为空"
     }}
@@ -490,4 +516,107 @@ def _user_prompt(platform: str, query: dict, brand_config: dict) -> str:
 2. 不要为了满足字段而编造引用来源；没有 URL 就返回空 citations。
 3. position 按 answer 中品牌首次出现或推荐顺序排序。
 4. citations[].quoted_text 只能摘录 answer 中已有内容或平台返回的引用片段，不要凭空生成网页正文。
+5. 不要判断 URL 是否官方或自有，信源归属由后端确定性解析。
+"""
+
+
+def _blind_user_prompt(platform: str, query: dict) -> str:
+    return f"""
+巡检平台：{platform}
+话题：{query["topic"]}
+QuerySet 场景：{query.get("query_pattern") or query.get("intent_type")}
+
+用户问题：
+{query["query_text"]}
+
+请返回 JSON：
+{{
+  "answer": "面向用户的真实自然回答，保留完整业务判断",
+  "mentioned_brands": [
+    {{
+      "name": "answer 中自然出现的品牌名",
+      "aliases_matched": ["answer 中命中的别名，可为空"],
+      "position": 1,
+      "mention_context": "explicit_recommendation|standard_listing|incidental_mention|not_mentioned",
+      "sentiment": "positive|neutral|negative",
+      "evidence": "从 answer 中摘取的一句依据"
+    }}
+  ],
+  "citations": [
+    {{
+      "url": "只有 answer 中明确出现 URL 或平台返回原生引用时才填写，否则不要编造",
+      "domain": "域名",
+      "title": "可为空",
+      "quoted_text": "该 URL 支撑的回答内容片段；必须来自 answer 或平台明确给出的引用片段",
+      "answer_excerpt": "包含该 URL 或该引用判断的 answer 上下文，可为空"
+    }}
+  ],
+  "parse_confidence": "high|medium|low",
+  "notes": "可为空"
+}}
+
+约束：
+1. 不要读取或推断任何本品牌、竞品或别名配置。
+2. mentioned_brands 只记录 answer 中自然出现或明确指代的品牌；不要为了评估而补充品牌。
+3. 不要为了满足字段而编造引用来源；没有 URL 就返回空 citations。
+4. 不要判断 URL 是否官方或自有，信源归属由后端确定性解析。
+"""
+
+
+def _assisted_extraction_user_prompt(platform: str, query: dict, brand_config: dict, options: dict[str, Any]) -> str:
+    brand = brand_config["entity_name"]
+    aliases = brand_config.get("entity_aliases", [])
+    competitors = brand_config.get("competitors", [])
+    competitor_names = [item["name"] for item in competitors if item.get("name")]
+    natural_answer = str(options.get("natural_answer") or "").strip()
+    natural_citations = options.get("natural_citations") or []
+    return f"""
+巡检平台：{platform}
+巡检对象：
+- 本品牌：{brand}
+- 本品牌别名：{aliases}
+- 竞品：{competitor_names}
+- 话题：{query["topic"]}
+- QuerySet 场景：{query.get("query_pattern") or query.get("intent_type")}
+
+用户问题：
+{query["query_text"]}
+
+自然回答：
+{natural_answer}
+
+自然回答引用：
+{natural_citations}
+
+请返回 JSON：
+{{
+  "answer": "原样返回自然回答",
+  "mentioned_brands": [
+    {{
+      "name": "自然回答中出现或明确指代的品牌名",
+      "aliases_matched": ["命中的别名，可为空"],
+      "position": 1,
+      "mention_context": "explicit_recommendation|standard_listing|incidental_mention|not_mentioned",
+      "sentiment": "positive|neutral|negative",
+      "evidence": "从自然回答中摘取的一句依据"
+    }}
+  ],
+  "citations": [
+    {{
+      "url": "自然回答或自然回答引用中已有的 URL",
+      "domain": "域名",
+      "title": "可为空",
+      "quoted_text": "该 URL 支撑的回答内容片段",
+      "answer_excerpt": "包含该 URL 或该引用判断的自然回答上下文，可为空"
+    }}
+  ],
+  "parse_confidence": "high|medium|low",
+  "notes": "可为空"
+}}
+
+约束：
+1. mentioned_brands 只记录自然回答中真实出现或明确指代的品牌。
+2. 不要为了满足字段而编造引用来源；没有 URL 就返回空 citations。
+3. position 按自然回答中品牌首次出现或推荐顺序排序。
+4. 不要判断 URL 是否官方或自有，信源归属由后端确定性解析。
 """
